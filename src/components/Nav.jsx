@@ -49,17 +49,16 @@ export default function Nav({ currentPage, navigate }) {
 
           {/* ── Brand (right side in RTL) ── */}
           <button className="nav-brand" onClick={() => handleNav('home')}>
-            {/* Replace logo here: /assets/logo.png */}
+            {/*
+              To change the logo:
+              Replace the file "society-logo.png" inside the assets folder
+              or update the path in Nav.jsx and Footer.jsx
+            */}
             <img
-              src="./assets/logo.png"
+              src="./assets/society-logo.png"
               alt="شعار الجماعة"
               className="nav-logo-img"
-              onError={(e) => { e.currentTarget.style.visibility = 'hidden'; }}
             />
-            <div className="nav-brand-text">
-              <span className="nav-brand-sub">كلية العلوم — جامعة السلطان قابوس</span>
-              <span className="nav-brand-main">جماعة الأنشطة الطلابية</span>
-            </div>
           </button>
 
           {/* ── Desktop links (center) ── */}

@@ -2,7 +2,7 @@ import { useStore } from '../store';
 
 const NAV = [
   ['home',   'الرئيسية'],
-  ['about',  'عن الجمعية'],
+  ['about',  'عن الجماعة'],
   ['events', 'الفعاليات'],
   ['join',   'انضم إلينا'],
 ];
@@ -17,20 +17,15 @@ export default function Footer({ navigate }) {
         {/* Brand */}
         <div className="footer-brand">
           {/*
-            LOGO REPLACEMENT (footer):
-            Replace the SVG with:
-            <img src="./assets/logo.png" alt="شعار الجمعية" style={{width:'38px',height:'38px',objectFit:'contain'}} />
+            To change the logo:
+            Replace the file "society-logo.png" inside the assets folder
+            or update the path in Nav.jsx and Footer.jsx
           */}
-          <svg width="38" height="38" viewBox="0 0 44 44" fill="none">
-            <circle cx="22" cy="22" r="20" fill="rgba(67,45,97,0.5)" />
-            <circle cx="22" cy="22" r="20" fill="none" stroke="rgba(63,164,211,0.35)" strokeWidth="1" />
-            <ellipse cx="22" cy="22" rx="20" ry="7" fill="none" stroke="rgba(63,164,211,0.35)" strokeWidth="1.2" transform="rotate(-25 22 22)" />
-            <circle cx="22" cy="22" r="4" fill="#3FA4D3" opacity="0.7" />
-          </svg>
-          <div>
-            <p className="footer-brand-name">جماعة الأنشطة الطلابية</p>
-            <p className="footer-brand-sub">كلية العلوم — جامعة السلطان قابوس</p>
-          </div>
+          <img
+            src="./assets/society-logo.png"
+            alt="شعار الجماعة"
+            className="footer-logo-img"
+          />
         </div>
 
         {/* Links */}
