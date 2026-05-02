@@ -1,6 +1,12 @@
 import { createContext, useContext, useState, useCallback } from 'react';
 
 const STORE_KEY = 'csss_v2';
+
+/*
+  To change admin password:
+  1. Update the string below
+  2. Save — no rebuild needed
+*/
 export const ADMIN_PASSWORD = 'csss@2025';
 
 /* ─── Default data ─────────────────────────────────────────── */

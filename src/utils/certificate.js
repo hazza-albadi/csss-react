@@ -24,7 +24,7 @@ function drawFromTemplate(ctx, event, name, W, H) {
       const fs  = event.nameFontSize ?? 52;
       ctx.textAlign    = 'center';
       ctx.direction    = 'rtl';
-      ctx.font         = `bold ${fs}px "IBM Plex Sans Arabic", Arial, sans-serif`;
+      ctx.font         = `bold ${fs}px "Thmanyah Sans", Arial, sans-serif`;
       ctx.fillStyle    = event.nameColor || '#432D61';
       ctx.fillText(name, nx, ny);
     }
@@ -77,14 +77,14 @@ function drawGenerated(ctx, event, name, W, H) {
   /* Header */
   ctx.textAlign  = 'center';
   ctx.direction  = 'rtl';
-  ctx.font       = '500 26px "IBM Plex Sans Arabic", Arial, sans-serif';
+  ctx.font       = '500 26px "Thmanyah Sans", Arial, sans-serif';
   ctx.fillStyle  = '#3FA4D3';
   ctx.fillText('جامعة السلطان قابوس — كلية العلوم', W / 2, 108);
 
   dividerLine(ctx, W, 128);
 
   /* Main title */
-  ctx.font      = 'bold 68px "IBM Plex Sans Arabic", Arial, sans-serif';
+  ctx.font      = 'bold 68px "Thmanyah Sans", Arial, sans-serif';
   ctx.fillStyle = '#FFFFFF';
   ctx.fillText('شهادة مشاركة', W / 2, 218);
 
@@ -101,7 +101,7 @@ function drawGenerated(ctx, event, name, W, H) {
   ctx.stroke();
 
   /* Subtitle */
-  ctx.font      = '400 28px "IBM Plex Sans Arabic", Arial, sans-serif';
+  ctx.font      = '400 28px "Thmanyah Sans", Arial, sans-serif';
   ctx.fillStyle = 'rgba(255,255,255,0.65)';
   ctx.fillText('تُشهد جماعة الأنشطة الطلابية بكلية العلوم بأن', W / 2, 302);
 
@@ -121,12 +121,12 @@ function drawGenerated(ctx, event, name, W, H) {
 
   const displayName = name || 'اسم المشارك';
   const fs = fitFont(ctx, displayName, W - naP * 2 - 80, 58, 22);
-  ctx.font      = `bold ${fs}px "IBM Plex Sans Arabic", Arial, sans-serif`;
+  ctx.font      = `bold ${fs}px "Thmanyah Sans", Arial, sans-serif`;
   ctx.fillStyle = name ? (event.nameColor || '#FFFFFF') : 'rgba(255,255,255,0.28)';
   ctx.fillText(displayName, W / 2, naY + naH / 2 + fs * 0.36);
 
   /* Event info */
-  ctx.font      = '400 26px "IBM Plex Sans Arabic", Arial, sans-serif';
+  ctx.font      = '400 26px "Thmanyah Sans", Arial, sans-serif';
   ctx.fillStyle = 'rgba(255,255,255,0.68)';
   ctx.fillText(
     event ? `على مشاركته في فعالية: "${event.title}"` : 'على مشاركته في الفعالية',
@@ -134,7 +134,7 @@ function drawGenerated(ctx, event, name, W, H) {
   );
 
   if (event?.date) {
-    ctx.font      = '400 22px "IBM Plex Sans Arabic", Arial, sans-serif';
+    ctx.font      = '400 22px "Thmanyah Sans", Arial, sans-serif';
     ctx.fillStyle = '#3FA4D3';
     ctx.fillText(
       `بتاريخ ${new Date(event.date + 'T00:00:00').toLocaleDateString('ar-OM', { year:'numeric', month:'long', day:'numeric' })}`,
@@ -201,11 +201,11 @@ function drawSignatures(ctx, W, H) {
   [[W * 0.12, W * 0.38], [W * 0.62, W * 0.88]].forEach(([x1, x2]) => {
     ctx.beginPath(); ctx.moveTo(x1, y + 56); ctx.lineTo(x2, y + 56); ctx.stroke();
   });
-  ctx.font      = '400 20px "IBM Plex Sans Arabic", Arial, sans-serif';
+  ctx.font      = '400 20px "Thmanyah Sans", Arial, sans-serif';
   ctx.fillStyle = 'rgba(255,255,255,0.45)';
   ctx.fillText('رئيس الجماعة', W * 0.25, y + 80);
   ctx.fillText('المشرف الأكاديمي', W * 0.75, y + 80);
-  ctx.font      = '400 17px "IBM Plex Sans Arabic", Arial, sans-serif';
+  ctx.font      = '400 17px "Thmanyah Sans", Arial, sans-serif';
   ctx.fillStyle = '#3FA4D3';
   ctx.fillText('جماعة الأنشطة الطلابية | كلية العلوم | جامعة السلطان قابوس', W / 2, H - 46);
 }
@@ -225,7 +225,7 @@ function drawDecorDots(ctx, W, H) {
 function fitFont(ctx, text, maxW, maxPx, minPx) {
   let s = maxPx;
   while (s > minPx) {
-    ctx.font = `bold ${s}px "IBM Plex Sans Arabic", Arial, sans-serif`;
+    ctx.font = `bold ${s}px "Thmanyah Sans", Arial, sans-serif`;
     if (ctx.measureText(text).width <= maxW) return s;
     s -= 2;
   }

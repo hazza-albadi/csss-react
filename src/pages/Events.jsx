@@ -134,7 +134,8 @@ function EventCard({ event, featured, delay, onCertificate }) {
               سجّل الآن
             </a>
           )}
-          {event.hasCertificate && (
+          {/* Certificate only shown after event has passed */}
+          {!isUpcoming(event) && event.hasCertificate && (
             <button className="btn btn-outline btn-sm" onClick={onCertificate}>
               🎓 الشهادة
             </button>

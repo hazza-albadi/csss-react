@@ -1,19 +1,17 @@
 import { useState, useEffect, useCallback } from 'react';
 import { StoreProvider } from './store';
-import LoadingScreen from './components/LoadingScreen';
-import Nav          from './components/Nav';
-import Footer       from './components/Footer';
-import Mascot       from './components/Mascot';
-import Home         from './pages/Home';
-import About        from './pages/About';
-import Join         from './pages/Join';
-import Events       from './pages/Events';
-import Admin        from './pages/Admin';
+import Nav    from './components/Nav';
+import Footer from './components/Footer';
+import Mascot from './components/Mascot';
+import Home   from './pages/Home';
+import About  from './pages/About';
+import Join   from './pages/Join';
+import Events from './pages/Events';
+import Admin  from './pages/Admin';
 
 const PAGES = { home: Home, about: About, events: Events, join: Join, admin: Admin };
 
 export default function App() {
-  const [loading, setLoading] = useState(true);
   const [page,    setPage]    = useState('home');
   const [exiting, setExiting] = useState(false);
 
@@ -40,10 +38,6 @@ export default function App() {
   }, [page]);
 
   const PageComponent = PAGES[page] ?? Home;
-
-  if (loading) {
-    return <LoadingScreen onDone={() => setLoading(false)} />;
-  }
 
   return (
     <StoreProvider>

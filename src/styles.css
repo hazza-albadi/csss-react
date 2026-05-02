@@ -3,6 +3,43 @@
    Brand: #432D61 (primary) · #3FA4D3 (accent) · #BBB0B6 (muted) · #E9E9E9 (light)
    ════════════════════════════════════════════════════════════ */
 
+/* ── THMANYAH SANS — self-hosted (assets/fonts/) ─────────── */
+@font-face {
+  font-family: 'Thmanyah Sans';
+  src: url('../assets/fonts/thmanyahsans-Light.woff2') format('woff2');
+  font-weight: 300;
+  font-style:  normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Thmanyah Sans';
+  src: url('../assets/fonts/thmanyahsans-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style:  normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Thmanyah Sans';
+  src: url('../assets/fonts/thmanyahsans-Medium.woff2') format('woff2');
+  font-weight: 500;
+  font-style:  normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Thmanyah Sans';
+  src: url('../assets/fonts/thmanyahsans-Bold.woff2') format('woff2');
+  font-weight: 700;
+  font-style:  normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Thmanyah Sans';
+  src: url('../assets/fonts/thmanyahsans-Black.woff2') format('woff2');
+  font-weight: 900;
+  font-style:  normal;
+  font-display: swap;
+}
+
 /* ── 1. VARIABLES ─────────────────────────────────────────── */
 :root {
   /* Brand */
@@ -55,7 +92,7 @@
 
   /* Layout */
   --nav-h: 72px;
-  --font:  'IBM Plex Sans Arabic', 'Segoe UI', Tahoma, Arial, sans-serif;
+  --font:  'Thmanyah Sans', Arial, sans-serif;
 }
 
 /* ── 2. RESET ─────────────────────────────────────────────── */
@@ -77,11 +114,15 @@ input, select, textarea { font-family: var(--font); }
 fieldset { border: none; }
 
 /* ── 3. TYPOGRAPHY ────────────────────────────────────────── */
-h1 { font-size: clamp(2rem, 5vw, 3.6rem); font-weight: 800; line-height: 1.15; }
+/* Weight hierarchy: body=400, labels/buttons=500, headings=700, hero=900 */
+body { font-weight: 400; }
+h1 { font-size: clamp(2rem, 5vw, 3.6rem); font-weight: 900; line-height: 1.15; }
 h2 { font-size: clamp(1.6rem, 3.5vw, 2.5rem); font-weight: 700; line-height: 1.25; }
-h3 { font-size: clamp(1.15rem, 2.5vw, 1.5rem); font-weight: 600; }
-h4 { font-size: 1.05rem; font-weight: 600; }
-p  { line-height: 1.82; }
+h3 { font-size: clamp(1.15rem, 2.5vw, 1.5rem); font-weight: 700; }
+h4 { font-size: 1.05rem; font-weight: 500; }
+p  { line-height: 1.82; font-weight: 400; }
+.btn { font-weight: 500; }
+label, .nav-link, .mobile-nav-link, .events-tab { font-weight: 500; }
 .text-muted { color: var(--tx3); font-size: 0.9rem; }
 .text-center { text-align: center; }
 
@@ -304,7 +345,7 @@ p  { line-height: 1.82; }
   position: absolute;
   bottom: 5px;
   left: 50%;
-  transform: translateX(50%);
+  transform: translateX(-50%);
   width: 4px;
   height: 4px;
   background: var(--a);
@@ -1332,58 +1373,85 @@ textarea.form-input { resize: vertical; min-height: 80px; }
 
 @media (max-width: 768px) {
   :root { --nav-h: 64px; }
+
+  /* ── Nav ── */
   .nav-links { display: none; }
   .hamburger { display: flex; }
   .mobile-drawer, .mobile-overlay { display: block; }
+
+  /* ── Global spacing: consistent horizontal breathing room ── */
+  .container { padding: 0 20px; }
+  .section   { padding: 52px 0; }
+  .section-header { margin-bottom: 32px; }
+
+  /* ── Hero ── */
+  .hero { padding: 60px 0 52px; min-height: auto; }
+  .hero-badge { margin-bottom: 22px; font-size: 0.82rem; }
+  .hero-title { margin-bottom: 20px; }
+  .hero-sub   { font-size: 1rem; margin-bottom: 30px; line-height: 1.75; }
+  .hero-cta   { flex-direction: column; gap: 12px; align-items: stretch; }
+  .hero-cta .btn { width: 100%; justify-content: center; padding: 14px 24px; font-size: 1rem; }
+
+  /* ── Grids ── */
+  .highlights-grid, .quick-nav-grid, .committees-grid, .about-pillars { grid-template-columns: 1fr; }
+  .values-grid  { grid-template-columns: repeat(2,1fr); }
+  .events-grid  { grid-template-columns: 1fr; }
+  .stats-grid   { grid-template-columns: repeat(2,1fr); }
+  .stat-card    { border-left: none; border-bottom: 1px solid rgba(255,255,255,.12); }
+
+  /* ── Cards ── */
+  .hl-card, .committee-card { padding: 24px 20px; }
+  .value-card { padding: 22px 18px; }
+  .event-card { margin: 0; }
+
+  /* ── Admin / Forms ── */
   .admin-form-grid { grid-template-columns: 1fr; }
   .form-full { grid-column: span 1; }
-  .stats-grid { grid-template-columns: repeat(2,1fr); }
-  .stat-card { border-left: none; border-bottom: 1px solid rgba(255,255,255,.12); }
-  .highlights-grid, .quick-nav-grid, .committees-grid, .about-pillars { grid-template-columns: 1fr; }
-  .values-grid { grid-template-columns: repeat(2,1fr); }
-  .events-grid { grid-template-columns: 1fr; }
-  .hero-cta { flex-direction: column; gap: 12px; }
-  .hero-cta .btn { width: 100%; justify-content: center; padding: 14px 24px; font-size: 1rem; }
-  .join-steps { gap: 0; }
-  .step-line { width: 24px; }
-  .next-event-chip { flex-direction: column; align-items: flex-start; }
   .admin-tabs { width: 100%; overflow-x: auto; }
   .modal { padding: 24px; }
   .modal-actions { flex-direction: column; }
-  .footer-links { gap: 4px; }
-  .about-intro { padding: 24px 22px; }
-  .mascot { width: 86px; bottom: 16px; left: 16px; }
   .stats-edit-grid { grid-template-columns: 1fr; }
-  .section { padding: 52px 0; }
-  /* Hero mobile */
-  .hero { padding: 56px 0 48px; min-height: auto; }
-  .hero .container { padding: 0 20px; }
-  .hero-eyebrow { font-size: 0.75rem; margin-bottom: 18px; }
-  .hero-title { margin-bottom: 18px; }
-  .hero-sub { font-size: 1rem; margin-bottom: 28px; }
-  /* Card spacing on mobile */
-  .hl-card, .committee-card { padding: 22px 20px; }
-  .value-card { padding: 22px 18px; }
-  /* Section headers */
-  .section-header { margin-bottom: 32px; }
-  /* Lighter blobs on mobile */
-  .blob-1 { width: 340px; height: 340px; filter: blur(55px); animation-duration: 20s; }
-  .blob-2 { width: 280px; height: 280px; filter: blur(45px); animation-duration: 18s; }
+
+  /* ── Misc ── */
+  .join-steps { gap: 0; }
+  .step-line  { width: 24px; }
+  .next-event-chip { flex-direction: column; align-items: flex-start; }
+  .footer-links  { gap: 4px; }
+  .about-intro   { padding: 24px 20px; }
+
+  /* ── Mascot ── */
+  .mascot { width: 82px; bottom: 16px; left: 16px; }
+
+  /* ── Reduce heavy animations for performance ── */
+  .blob-1 { width: 300px; height: 300px; filter: blur(50px); animation-duration: 22s; }
+  .blob-2 { width: 240px; height: 240px; filter: blur(40px); animation-duration: 20s; }
   .blob-3 { display: none; }
+  .reveal { transition-duration: 0.55s; }
+  .hl-card:hover, .committee-card:hover { transform: translateY(-4px); }
 }
 
 @media (max-width: 480px) {
-  .hero-line    { font-size: 1.9rem; }
-  .hero-mark    { font-size: inherit; }
-  .section-title { font-size: 1.65rem; }
-  .values-grid   { grid-template-columns: 1fr; }
-  .stats-grid    { grid-template-columns: 1fr 1fr; }
-  .admin-login-card { padding: 28px 20px; }
-  .mascot { width: 74px; bottom: 12px; left: 12px; }
+  /* ── Tighter horizontal padding on very small screens ── */
   .container { padding: 0 16px; }
-  .section { padding: 44px 0; }
+  .section   { padding: 44px 0; }
+
+  /* ── Typography ── */
+  .hero-line     { font-size: 1.85rem; }
+  .hero-mark     { font-size: inherit; }
+  .hero-sub      { font-size: 0.95rem; }
+  .section-title { font-size: 1.6rem; }
+  .stat-num      { font-size: 1.9rem; }
+
+  /* ── Grids ── */
+  .values-grid { grid-template-columns: 1fr; }
+  .stats-grid  { grid-template-columns: 1fr 1fr; }
+
+  /* ── Cards ── */
   .hl-card, .committee-card { padding: 18px 16px; }
-  .stat-num { font-size: 2rem; }
+  .admin-login-card { padding: 28px 20px; }
+
+  /* ── Mascot ── */
+  .mascot { width: 68px; bottom: 12px; left: 12px; }
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -1,16 +1,29 @@
 import { useState, useEffect } from 'react';
 
+/*
+  To change the logo:
+  1. Replace the file at /assets/logo.png
+  2. Or update the src path below in the <img> tag
+*/
+
+/*
+  To change the admin password:
+  1. Open src/store.jsx
+  2. Find: export const ADMIN_PASSWORD = '...'
+  3. Replace the value with the new password
+*/
+
+/* Admin route intentionally excluded — access via /#admin only */
 const NAV_ITEMS = [
   { route: 'home',   label: 'الرئيسية'   },
   { route: 'about',  label: 'عن الجماعة' },
   { route: 'events', label: 'الفعاليات'  },
   { route: 'join',   label: 'انضم إلينا' },
-  { route: 'admin',  label: 'الإدارة'    },
 ];
 
 export default function Nav({ currentPage, navigate }) {
-  const [scrolled,    setScrolled]    = useState(false);
-  const [menuOpen,    setMenuOpen]    = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   useEffect(() => {
     const handler = () => setScrolled(window.scrollY > 50);
@@ -27,17 +40,14 @@ export default function Nav({ currentPage, navigate }) {
     <>
       <nav className={`nav${scrolled ? ' nav--scrolled' : ''}`}>
         <div className="nav-inner">
-          {/* ── Hamburger ── */}
-          <button
-            className={`hamburger${menuOpen ? ' hamburger--open' : ''}`}
-            onClick={() => setMenuOpen((o) => !o)}
-            aria-label="القائمة"
-            aria-expanded={menuOpen}
-          >
-            <span /><span /><span />
-          </button>
 
-          {/* ── Brand ── */}
+          {/*
+            RTL layout: flex row in RTL direction
+            First child → far RIGHT (brand/logo)
+            Last child  → far LEFT  (hamburger)
+          */}
+
+          {/* ── Brand (right side in RTL) ── */}
           <button className="nav-brand" onClick={() => handleNav('home')}>
             {/* Replace logo here: /assets/logo.png */}
             <img
@@ -52,7 +62,7 @@ export default function Nav({ currentPage, navigate }) {
             </div>
           </button>
 
-          {/* ── Desktop links ── */}
+          {/* ── Desktop links (center) ── */}
           <ul className="nav-links">
             {NAV_ITEMS.map(({ route, label }) => (
               <li key={route}>
@@ -66,10 +76,20 @@ export default function Nav({ currentPage, navigate }) {
               </li>
             ))}
           </ul>
+
+          {/* ── Hamburger (left side in RTL) ── */}
+          <button
+            className={`hamburger${menuOpen ? ' hamburger--open' : ''}`}
+            onClick={() => setMenuOpen((o) => !o)}
+            aria-label="القائمة"
+            aria-expanded={menuOpen}
+          >
+            <span /><span /><span />
+          </button>
         </div>
       </nav>
 
-      {/* ── Mobile drawer ── */}
+      {/* ── Mobile drawer (slides in from right) ── */}
       <div className={`mobile-drawer${menuOpen ? ' mobile-drawer--open' : ''}`}>
         <ul>
           {NAV_ITEMS.map(({ route, label }) => (
