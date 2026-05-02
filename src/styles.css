@@ -1383,18 +1383,23 @@ textarea.form-input { resize: vertical; min-height: 80px; }
   .hamburger { display: flex; }
   .mobile-drawer, .mobile-overlay { display: block; }
 
-  /* ── Global spacing: consistent horizontal breathing room ── */
+  /* ── Global spacing ── */
   .container { padding: 0 20px; }
   .section   { padding: 52px 0; }
   .section-header { margin-bottom: 32px; }
 
-  /* ── Hero ── */
-  .hero { padding: 60px 0 72px; min-height: auto; }
-  .hero-badge { margin-bottom: 22px; font-size: 0.82rem; }
+  /* ── Hero — add horizontal padding so content never touches edges ── */
+  .hero { padding: 60px 20px 72px; min-height: auto; }
+  .hero-content { padding: 0; }
+  .hero-badge { margin-bottom: 22px; font-size: 0.82rem; max-width: 100%; flex-wrap: wrap; justify-content: flex-start; }
   .hero-title { margin-bottom: 20px; }
   .hero-sub   { font-size: 1rem; margin-bottom: 30px; line-height: 1.75; }
   .hero-cta   { flex-direction: column; gap: 12px; align-items: stretch; }
   .hero-cta .btn { width: 100%; justify-content: center; padding: 14px 24px; font-size: 1rem; }
+  .next-event-chip { flex-direction: column; align-items: flex-start; gap: 8px; width: 100%; box-sizing: border-box; }
+
+  /* ── Page hero (inner pages) ── */
+  .page-hero { padding: calc(var(--nav-h) + 36px) 20px 48px; }
 
   /* ── Grids ── */
   .highlights-grid, .quick-nav-grid, .committees-grid, .about-pillars { grid-template-columns: 1fr; }
@@ -1408,19 +1413,25 @@ textarea.form-input { resize: vertical; min-height: 80px; }
   .value-card { padding: 22px 18px; }
   .event-card { margin: 0; }
 
+  /* ── Join steps — stack vertically so 4 steps fit without overflow ── */
+  .join-steps { flex-direction: column; align-items: stretch; gap: 16px; padding: 0; }
+  .join-step  { flex-direction: row; align-items: center; gap: 14px; }
+  .join-step p { max-width: none; margin-right: 0; flex: 1; }
+  .step-line  { display: none; }
+
   /* ── Admin / Forms ── */
   .admin-form-grid { grid-template-columns: 1fr; }
   .form-full { grid-column: span 1; }
-  .admin-tabs { width: 100%; overflow-x: auto; }
-  .modal { padding: 24px; }
+  .admin-tabs { width: 100%; overflow-x: auto; flex-wrap: nowrap; -webkit-overflow-scrolling: touch; }
+  .admin-list-panel, .admin-form-panel, .admin-tasks-panel { padding: 20px; }
+  .admin-header { flex-wrap: wrap; gap: 12px; }
+  .modal { padding: 24px 20px; }
   .modal-actions { flex-direction: column; }
   .stats-edit-grid { grid-template-columns: 1fr; }
 
-  /* ── Misc ── */
-  .join-steps { gap: 0; }
-  .step-line  { width: 24px; }
-  .next-event-chip { flex-direction: column; align-items: flex-start; }
+  /* ── Footer ── */
   .footer-links  { gap: 4px; }
+  .footer-contact { gap: 14px; }
   .about-intro   { padding: 24px 20px; }
 
   /* ── Mascot ── */
@@ -1435,16 +1446,24 @@ textarea.form-input { resize: vertical; min-height: 80px; }
 }
 
 @media (max-width: 480px) {
-  /* ── Tighter horizontal padding on very small screens ── */
+  /* ── Tighter horizontal padding ── */
   .container { padding: 0 16px; }
   .section   { padding: 44px 0; }
 
+  /* ── Hero ── */
+  .hero { padding: 40px 16px 52px; }
+  .hero-line  { font-size: 1.75rem; line-height: 1.75; padding: 0.08em 0; }
+  .hero-mark  { font-size: inherit; }
+  .hero-sub   { font-size: 0.95rem; }
+  .hero-badge { font-size: 0.78rem; padding: 7px 14px; }
+
+  /* ── Page hero ── */
+  .page-hero { padding: calc(var(--nav-h) + 24px) 16px 36px; }
+  .page-hero-title { font-size: clamp(1.8rem, 8vw, 2.6rem); }
+
   /* ── Typography ── */
-  .hero-line     { font-size: 1.75rem; line-height: 1.75; padding: 0.08em 0; }
-  .hero-mark     { font-size: inherit; }
-  .hero-sub      { font-size: 0.95rem; }
   .section-title { font-size: 1.6rem; }
-  .stat-num      { font-size: 1.9rem; }
+  .stat-num { font-size: 1.9rem; }
 
   /* ── Grids ── */
   .values-grid { grid-template-columns: 1fr; }
@@ -1452,7 +1471,31 @@ textarea.form-input { resize: vertical; min-height: 80px; }
 
   /* ── Cards ── */
   .hl-card, .committee-card { padding: 18px 16px; }
+  .qn-card { padding: 20px 14px; }
+
+  /* ── Join steps ── */
+  .step-circle { width: 42px; height: 42px; font-size: 0.95rem; }
+
+  /* ── Events ── */
+  .events-tabs { width: 100%; justify-content: center; }
+  .events-tab  { padding: 9px 18px; font-size: 0.86rem; flex: 1; justify-content: center; }
+
+  /* ── Admin ── */
+  .admin-list-panel, .admin-form-panel, .admin-tasks-panel { padding: 14px; }
+  .admin-header { flex-direction: column; align-items: flex-start; gap: 10px; }
+  .admin-title  { font-size: 1.4rem; }
   .admin-login-card { padding: 28px 20px; }
+  .admin-row { padding: 12px 14px; }
+  .admin-row-info { gap: 8px; }
+
+  /* ── Modal ── */
+  .modal-overlay { padding: 10px; }
+  .modal { padding: 18px 14px; border-radius: var(--r-lg); }
+  .modal-title  { font-size: 1.25rem; }
+
+  /* ── Footer ── */
+  .footer { padding: 36px 16px; }
+  .footer-copy { font-size: 0.72rem; }
 
   /* ── Mascot ── */
   .mascot { width: 68px; bottom: 12px; left: 12px; }
