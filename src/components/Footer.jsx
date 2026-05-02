@@ -1,4 +1,5 @@
 import { useStore } from '../store';
+import societyLogo from '../assets/society-logo.png';
 
 const NAV = [
   ['home',   'الرئيسية'],
@@ -22,7 +23,7 @@ export default function Footer({ navigate }) {
             or update the path in Nav.jsx and Footer.jsx
           */}
           <img
-            src="./assets/society-logo.png"
+            src={societyLogo}
             alt="شعار الجماعة"
             className="footer-logo-img"
           />

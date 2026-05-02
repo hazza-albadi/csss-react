@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import societyLogo from '../assets/society-logo.png';
 
 /*
   To change the logo:
@@ -55,7 +56,7 @@ export default function Nav({ currentPage, navigate }) {
               or update the path in Nav.jsx and Footer.jsx
             */}
             <img
-              src="./assets/society-logo.png"
+              src={societyLogo}
               alt="شعار الجماعة"
               className="nav-logo-img"
             />
