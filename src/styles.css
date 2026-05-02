@@ -40,6 +40,36 @@
   font-display: swap;
 }
 
+/* ── THMANYAH SERIF TEXT — self-hosted (assets/fonts/) ──── */
+@font-face {
+  font-family: 'Thmanyah Serif';
+  src: url('../assets/fonts/thmanyahseriftext-Light.woff2') format('woff2');
+  font-weight: 300;
+  font-style:  normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Thmanyah Serif';
+  src: url('../assets/fonts/thmanyahseriftext-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style:  normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Thmanyah Serif';
+  src: url('../assets/fonts/thmanyahseriftext-Medium.woff2') format('woff2');
+  font-weight: 500;
+  font-style:  normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Thmanyah Serif';
+  src: url('../assets/fonts/thmanyahseriftext-Bold.woff2') format('woff2');
+  font-weight: 700;
+  font-style:  normal;
+  font-display: swap;
+}
+
 /* ── 1. VARIABLES ─────────────────────────────────────────── */
 :root {
   /* Brand */
@@ -92,7 +122,9 @@
 
   /* Layout */
   --nav-h: 84px;
-  --font:  'Thmanyah Sans', Arial, sans-serif;
+  --font-heading: 'Thmanyah Serif', serif;
+  --font-body:    'Thmanyah Sans', Arial, sans-serif;
+  --font:         var(--font-body); /* alias kept for existing uses */
 }
 
 /* ── 2. RESET ─────────────────────────────────────────────── */
@@ -114,15 +146,54 @@ input, select, textarea { font-family: var(--font); }
 fieldset { border: none; }
 
 /* ── 3. TYPOGRAPHY ────────────────────────────────────────── */
-/* Weight hierarchy: body=400, labels/buttons=500, headings=700, hero=900 */
-body { font-weight: 400; }
-h1 { font-size: clamp(2rem, 5vw, 3.6rem); font-weight: 900; line-height: 1.15; }
-h2 { font-size: clamp(1.6rem, 3.5vw, 2.5rem); font-weight: 700; line-height: 1.25; }
-h3 { font-size: clamp(1.15rem, 2.5vw, 1.5rem); font-weight: 700; }
-h4 { font-size: 1.05rem; font-weight: 500; }
-p  { line-height: 1.82; font-weight: 400; }
+/*
+  Heading font : Thmanyah Serif  — titles, section heads, card heads
+  Body font    : Thmanyah Sans   — paragraphs, UI, nav, buttons, forms
+*/
+
+/* ── Global base ── */
+body  { font-family: var(--font-body); font-weight: 400; }
+
+/* ── Serif headings — max 700, safe line-height for Arabic ── */
+h1, h2, h3 {
+  font-family: var(--font-heading);
+  font-weight: 700;
+}
+h1 { font-size: clamp(2rem, 5vw, 3.6rem);       line-height: 1.65; }
+h2 { font-size: clamp(1.6rem, 3.5vw, 2.5rem);   line-height: 1.6;  }
+h3 { font-size: clamp(1.15rem, 2.5vw, 1.5rem);  line-height: 1.6;  }
+
+/* ── Sans sub-headings / UI labels ── */
+h4 { font-family: var(--font-body); font-size: 1.05rem; font-weight: 600; }
+p  { font-family: var(--font-body); font-weight: 400; line-height: 1.85; }
+
+/* ── Named heading classes → Serif ── */
+.hero-line,
+.section-title,
+.page-hero-title,
+.pillar-label,
+.event-title,
+.hl-card h3,
+.committee-card h3,
+.about-pillar h3,
+.value-card h4 {
+  font-family: var(--font-heading);
+  font-weight: 700;
+}
+
+/* ── UI elements → always Sans ── */
+.btn,
+input, select, textarea,
+label, legend,
+.nav-link, .mobile-nav-link,
+.events-tab,
+.footer-link, .footer-copy,
+.admin-tab, .form-label,
+.stat-label, .badge, .hero-badge {
+  font-family: var(--font-body);
+  font-weight: 500;
+}
 .btn { font-weight: 500; }
-label, .nav-link, .mobile-nav-link, .events-tab { font-weight: 500; }
 .text-muted { color: var(--tx3); font-size: 0.9rem; }
 .text-center { text-align: center; }
 
@@ -429,7 +500,8 @@ label, .nav-link, .mobile-nav-link, .events-tab { font-weight: 500; }
   flex-direction: column;
   justify-content: center;
   background: var(--g-dark);
-  overflow: hidden;
+  overflow-x: hidden;   /* clips blobs horizontally */
+  overflow-y: visible;  /* never clips title text vertically */
   padding: calc(var(--nav-h) + 48px) 24px 100px;
 }
 
@@ -497,24 +569,25 @@ label, .nav-link, .mobile-nav-link, .events-tab { font-weight: 500; }
   margin-bottom: 24px;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 8px;
+  overflow: visible;
 }
 .hero-line {
   display: block;
   color: white;
+  font-family: var(--font-heading); /* Thmanyah Serif */
   font-size: clamp(2.4rem, 5.5vw, 4rem);
-  font-weight: 800;
-  line-height: 1.5;
-  padding-bottom: 0.1em;
+  font-weight: 700; /* max available in Serif — no 800/900 */
+  line-height: 1.75;
+  padding: 0.08em 0;
+  overflow: visible;
   animation: slideUp 0.75s var(--ease) both;
 }
 .hero-mark {
-  background: linear-gradient(135deg, #EDE9FF 10%, #7ECEF0 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: #7ECEF0;          /* solid accent — no clip, no filter, no transparency trick */
+  background: none;
+  -webkit-text-fill-color: unset;
   font-style: normal;
-  filter: drop-shadow(0 0 20px rgba(63,164,211,.25));
 }
 
 .hero-sub {
@@ -1352,7 +1425,7 @@ textarea.form-input { resize: vertical; min-height: 80px; }
 @keyframes msgFade     { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 @keyframes blobDrift   { 0%,100% { transform: translate(0,0) scale(1); } 30% { transform: translate(22px,-16px) scale(1.06); } 60% { transform: translate(-14px,20px) scale(0.95); } 80% { transform: translate(8px,-8px) scale(1.02); } }
 @keyframes slideDown   { from { opacity: 0; transform: translateY(-16px); } to { opacity: 1; transform: none; } }
-@keyframes slideUp     { from { opacity: 0; transform: translateY(22px); } to { opacity: 1; transform: none; } }
+@keyframes slideUp     { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
 @keyframes fadeIn      { from { opacity: 0; } to { opacity: 1; } }
 @keyframes popIn       { 0% { transform: scale(0.5); opacity: 0; } 70% { transform: scale(1.06); } 100% { transform: scale(1); opacity: 1; } }
 @keyframes chevronBounce { 0%,100% { transform: rotate(45deg) translateY(0); opacity: .4; } 50% { transform: rotate(45deg) translateY(5px); opacity: .9; } }
@@ -1439,7 +1512,7 @@ textarea.form-input { resize: vertical; min-height: 80px; }
   .section   { padding: 44px 0; }
 
   /* ── Typography ── */
-  .hero-line     { font-size: 1.85rem; }
+  .hero-line     { font-size: 1.75rem; line-height: 1.75; padding: 0.08em 0; }
   .hero-mark     { font-size: inherit; }
   .hero-sub      { font-size: 0.95rem; }
   .section-title { font-size: 1.6rem; }
