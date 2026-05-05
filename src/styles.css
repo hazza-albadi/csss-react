@@ -575,13 +575,14 @@ label, .nav-link, .mobile-nav-link, .events-tab { font-weight: 500; }
   position: absolute;
   bottom: 28px;
   left: 50%;
-  transform: translateX(50%);
+  transform: translateX(-50%);       /* -50% centers; +50% was clipping under overflow-x:hidden */
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 8px;
   color: rgba(255,255,255,.35);
   font-size: 0.75rem;
+  white-space: nowrap;               /* single-line text, safe because now correctly centered */
 }
 .scroll-chevron {
   width: 18px; height: 18px;
@@ -1334,7 +1335,7 @@ textarea.form-input { resize: vertical; min-height: 80px; }
   position: fixed;
   bottom: 32px;
   left: 50%;
-  transform: translateX(50%);
+  transform: translateX(-50%);       /* -50% centers; +50% was pushing it off-screen */
   padding: 13px 26px;
   border-radius: var(--r-f);
   font-size: 0.9rem;
@@ -1343,6 +1344,11 @@ textarea.form-input { resize: vertical; min-height: 80px; }
   z-index: 9000;
   box-shadow: var(--sh-xl);
   animation: toastIn 0.35s var(--ease);
+  max-width: calc(100vw - 48px);     /* never wider than viewport */
+  width: max-content;                 /* shrinks to text on desktop */
+  text-align: center;
+  white-space: normal;               /* allow wrapping on mobile */
+  word-break: break-word;
 }
 .toast--success { background: linear-gradient(135deg, #065F46, #10B981); }
 .toast--error   { background: linear-gradient(135deg, #7F1D1D, #EF4444); }
@@ -1360,7 +1366,7 @@ textarea.form-input { resize: vertical; min-height: 80px; }
 @keyframes pulse       { 0%,100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.35); opacity: .55; } }
 @keyframes mascotFloat  { 0%,100% { transform: translateY(0); } 45% { transform: translateY(-10px); } 75% { transform: translateY(-4px); } }
 @keyframes mascotBounce { 0% { transform: scale(1); } 30% { transform: scale(1.1) translateY(-12px); } 65% { transform: scale(0.95) translateY(4px); } 100% { transform: scale(1); } }
-@keyframes toastIn      { from { transform: translateX(50%) translateY(30px); opacity: 0; } to { transform: translateX(50%) translateY(0); opacity: 1; } }
+@keyframes toastIn      { from { transform: translateX(-50%) translateY(30px); opacity: 0; } to { transform: translateX(-50%) translateY(0); opacity: 1; } }
 @keyframes revealUp     { from { opacity: 0; transform: translateY(32px); } to { opacity: 1; transform: none; } }
 @keyframes bgShimmer    { 0%,100% { opacity: 0.6; } 50% { opacity: 1; } }
 
@@ -1388,9 +1394,10 @@ textarea.form-input { resize: vertical; min-height: 80px; }
   .section   { padding: 52px 0; }
   .section-header { margin-bottom: 32px; }
 
-  /* ── Hero — add horizontal padding so content never touches edges ── */
+  /* ── Hero — horizontal padding so content never touches edges ── */
   .hero { padding: 60px 20px 72px; min-height: auto; }
   .hero-content { padding: 0; }
+  .hero-scroll  { display: none; }               /* scroll hint hidden on mobile */
   .hero-badge { margin-bottom: 22px; font-size: 0.82rem; max-width: 100%; flex-wrap: wrap; justify-content: flex-start; }
   .hero-title { margin-bottom: 20px; }
   .hero-sub   { font-size: 1rem; margin-bottom: 30px; line-height: 1.75; }
@@ -1423,19 +1430,27 @@ textarea.form-input { resize: vertical; min-height: 80px; }
   .admin-form-grid { grid-template-columns: 1fr; }
   .form-full { grid-column: span 1; }
   .admin-tabs { width: 100%; overflow-x: auto; flex-wrap: nowrap; -webkit-overflow-scrolling: touch; }
+  .admin-tab  { padding: 9px 16px; font-size: 0.84rem; white-space: nowrap; }  /* compact tabs for scroll */
   .admin-list-panel, .admin-form-panel, .admin-tasks-panel { padding: 20px; }
   .admin-header { flex-wrap: wrap; gap: 12px; }
+  .content-fieldset { padding: 16px; }           /* reduce nested padding */
   .modal { padding: 24px 20px; }
   .modal-actions { flex-direction: column; }
+  .modal-actions .btn { width: 100%; justify-content: center; } /* buttons full-width in column stack */
   .stats-edit-grid { grid-template-columns: 1fr; }
+  .admin-row-actions { flex-shrink: 0; }         /* action buttons never squish */
+
+  /* ── Toast — safe positioning already fixed in base; reinforce for mobile ── */
+  .toast { font-size: 0.85rem; padding: 11px 20px; bottom: 24px; }
 
   /* ── Footer ── */
   .footer-links  { gap: 4px; }
   .footer-contact { gap: 14px; }
   .about-intro   { padding: 24px 20px; }
 
-  /* ── Mascot ── */
-  .mascot { width: 82px; bottom: 16px; left: 16px; }
+  /* ── Mascot — smaller so it covers less content area ── */
+  .mascot { width: 70px; bottom: 14px; left: 14px; }
+  .mascot-bubble { max-width: 160px; }
 
   /* ── Reduce heavy animations for performance ── */
   .blob-1 { width: 300px; height: 300px; filter: blur(50px); animation-duration: 22s; }
@@ -1487,6 +1502,8 @@ textarea.form-input { resize: vertical; min-height: 80px; }
   .admin-login-card { padding: 28px 20px; }
   .admin-row { padding: 12px 14px; }
   .admin-row-info { gap: 8px; }
+  .content-fieldset { padding: 12px; }           /* reduce further at smallest size */
+  .admin-tab { padding: 8px 12px; font-size: 0.8rem; }
 
   /* ── Modal ── */
   .modal-overlay { padding: 10px; }
@@ -1495,10 +1512,13 @@ textarea.form-input { resize: vertical; min-height: 80px; }
 
   /* ── Footer ── */
   .footer { padding: 36px 16px; }
-  .footer-copy { font-size: 0.72rem; }
+  .footer-copy { font-size: 0.72rem; line-height: 1.6; }
+  .footer-contact { flex-direction: column; align-items: center; gap: 10px; }
+  .footer-contact-item { font-size: 0.82rem; }
 
-  /* ── Mascot ── */
-  .mascot { width: 68px; bottom: 12px; left: 12px; }
+  /* ── Mascot — small and semi-transparent to minimise content overlap ── */
+  .mascot { width: 52px; bottom: 10px; left: 10px; opacity: 0.82; }
+  .mascot-bubble { font-size: 0.74rem; padding: 7px 11px; max-width: 140px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
