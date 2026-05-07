@@ -197,12 +197,32 @@ function EventsTab({ data, update, toast }) {
 
   const openNew  = ()    => { setForm(blankEvent()); setEditing('new'); setView('form'); };
   const openEdit = (ev)  => { setForm({ nameColor: '#ffffff', ...ev }); setEditing(ev.id); setView('form'); };
-  const openPart = (ev)  => {
+  const openPart = async (ev) => {
+    let target = ev;
+
+    // If the event has a local/fake id, auto-save it to Supabase first
+    // so we get a real UUID before opening the participants panel.
     if (!isValidUuid(ev.id)) {
-      toast.show('يجب حفظ الفعالية في قاعدة البيانات قبل إدارة المشاركين', 'error');
-      return;
+      try {
+        target = await upsertEvent(ev);
+        // Swap the old local entry with the Supabase-persisted one
+        update((d) => {
+          const idx = d.events.findIndex((e) => e.id === ev.id);
+          if (idx > -1) {
+            const evts = [...d.events];
+            evts[idx] = target;
+            return { ...d, events: evts };
+          }
+          return d;
+        });
+      } catch {
+        toast.show('تعذّر حفظ الفعالية في قاعدة البيانات. يرجى المحاولة مرة أخرى.', 'error');
+        return;
+      }
     }
-    setPartEvt(ev); setView('participants');
+
+    setPartEvt(target);
+    setView('participants');
   };
   const backList = ()    => { setView('list'); setEditing(null); setPartEvt(null); };
 
