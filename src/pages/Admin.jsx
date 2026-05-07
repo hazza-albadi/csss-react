@@ -7,7 +7,7 @@ import {
   upsertAchievement, deleteAchievement,
   upsertTask,    deleteTask,
   fetchParticipants, uploadParticipants, deleteParticipant,
-  parseParticipantsCsv,
+  parseParticipantsCsv, mapParticipantRows, isValidUuid,
 } from '../lib/db';
 
 /* ════════════════════════════════════════════════════════════
@@ -197,7 +197,13 @@ function EventsTab({ data, update, toast }) {
 
   const openNew  = ()    => { setForm(blankEvent()); setEditing('new'); setView('form'); };
   const openEdit = (ev)  => { setForm({ nameColor: '#ffffff', ...ev }); setEditing(ev.id); setView('form'); };
-  const openPart = (ev)  => { setPartEvt(ev); setView('participants'); };
+  const openPart = (ev)  => {
+    if (!isValidUuid(ev.id)) {
+      toast.show('يجب حفظ الفعالية في قاعدة البيانات قبل إدارة المشاركين', 'error');
+      return;
+    }
+    setPartEvt(ev); setView('participants');
+  };
   const backList = ()    => { setView('list'); setEditing(null); setPartEvt(null); };
 
   const handleImage = (e) => {
@@ -389,11 +395,20 @@ function EventsTab({ data, update, toast }) {
 
 /* ══ PARTICIPANTS PANEL (CSV upload + list) ═══════════════════ */
 function ParticipantsPanel({ event, onBack, toast }) {
-  const csvRef                        = useRef(null);
-  const [participants, setParticipants] = useState(null); // null = not loaded yet
+  const csvRef = useRef(null);
+
+  // Existing participants list
+  const [participants, setParticipants] = useState(null);
   const [loading,      setLoading]      = useState(false);
-  const [uploading,    setUploading]    = useState(false);
-  const [csvErrors,    setCsvErrors]    = useState([]);
+
+  // CSV multi-step: 0 = idle, 1 = column mapping
+  const [csvStep,    setCsvStep]    = useState(0);
+  const [csvHeaders, setCsvHeaders] = useState([]);
+  const [csvRawRows, setCsvRawRows] = useState([]);
+  const [nameColIdx, setNameColIdx] = useState(0);
+  const [phoneColIdx,setPhoneColIdx]= useState(1);
+  const [uploading,  setUploading]  = useState(false);
+  const [uploadSummary, setUploadSummary] = useState(null); // { inserted, duplicated, skippedEmpty }
 
   const load = async () => {
     setLoading(true);
@@ -408,33 +423,45 @@ function ParticipantsPanel({ event, onBack, toast }) {
     }
   };
 
-  // Load on first render
   if (participants === null && !loading) { load(); }
 
-  const handleCsv = async (e) => {
+  /* ── Step 1: select file, read headers ── */
+  const handleCsvSelect = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
     const text = await file.text();
-    const { rows, errors } = parseParticipantsCsv(text);
-    setCsvErrors(errors);
+    const { headers, rawRows } = parseParticipantsCsv(text);
+    if (rawRows.length === 0) { toast.show('لم يُعثر على بيانات في الملف', 'error'); return; }
+    setCsvHeaders(headers);
+    setCsvRawRows(rawRows);
+    setNameColIdx(0);
+    setPhoneColIdx(Math.min(1, headers.length - 1));
+    setUploadSummary(null);
+    setCsvStep(1);
+  };
 
-    if (rows.length === 0) {
-      toast.show(errors.length ? 'ملف CSV يحتوي أخطاء — راجع القائمة أدناه' : 'لم يُعثر على بيانات في الملف', 'error');
-      return;
+  /* ── Step 2: confirm + upload ── */
+  const handleUpload = async () => {
+    if (nameColIdx === phoneColIdx) {
+      toast.show('يجب اختيار عمودَين مختلفَين للاسم والهاتف', 'error'); return;
     }
-
+    const { rows, skippedEmpty } = mapParticipantRows(csvRawRows, nameColIdx, phoneColIdx);
+    if (rows.length === 0) { toast.show('لا توجد صفوف صالحة للرفع', 'error'); return; }
     setUploading(true);
     try {
-      const { inserted, skipped } = await uploadParticipants(event.id, rows);
-      toast.show(`تم رفع ${inserted} مشارك${skipped > 0 ? ` (تخطّي ${skipped} مكرر)` : ''}`);
-      await load(); // refresh list
+      const { inserted, duplicated } = await uploadParticipants(event.id, rows);
+      setUploadSummary({ inserted, duplicated, skippedEmpty });
+      setCsvStep(0);
+      if (csvRef.current) csvRef.current.value = '';
+      await load();
     } catch (err) {
       toast.show('فشل رفع البيانات: ' + (err.message || 'خطأ غير معروف'), 'error');
     } finally {
       setUploading(false);
-      if (csvRef.current) csvRef.current.value = '';
     }
   };
+
+  const cancelCsv = () => { setCsvStep(0); if (csvRef.current) csvRef.current.value = ''; };
 
   const del = async (id) => {
     if (!confirm('هل أنت متأكد من حذف هذا المشارك؟')) return;
@@ -442,9 +469,7 @@ function ParticipantsPanel({ event, onBack, toast }) {
       await deleteParticipant(id);
       setParticipants((p) => p.filter((r) => r.id !== id));
       toast.show('تم حذف المشارك');
-    } catch {
-      toast.show('تعذّر حذف المشارك', 'error');
-    }
+    } catch { toast.show('تعذّر حذف المشارك', 'error'); }
   };
 
   return (
@@ -457,47 +482,105 @@ function ParticipantsPanel({ event, onBack, toast }) {
         <button className="btn btn-ghost btn-sm" onClick={onBack}>← رجوع</button>
       </div>
 
-      {/* CSV upload */}
+      {/* ── CSV upload section ── */}
       <div className="content-fieldset" style={{ marginBottom: 24 }}>
         <p style={{ fontWeight: 600, marginBottom: 8 }}>رفع قائمة المشاركين (CSV)</p>
-        <p className="text-muted" style={{ fontSize: '0.82rem', marginBottom: 12 }}>
-          يجب أن يحتوي الملف على عمودَين: <strong>الاسم، رقم الهاتف</strong> (مع رأس اختياري).
-          سيتم تخطّي أرقام الهاتف المكررة تلقائيًا.
-        </p>
-        <input
-          ref={csvRef}
-          type="file"
-          accept=".csv,text/csv,text/plain"
-          className="form-input"
-          onChange={handleCsv}
-          disabled={uploading}
-        />
-        {uploading && <p className="text-muted" style={{ marginTop: 8 }}>جارٍ الرفع…</p>}
-        {csvErrors.length > 0 && (
-          <ul style={{ marginTop: 10, color: 'var(--danger, #e55)', fontSize: '0.82rem', paddingInlineStart: 18 }}>
-            {csvErrors.map((e, i) => <li key={i}>{e}</li>)}
-          </ul>
+
+        {/* Step 0 — file picker */}
+        {csvStep === 0 && (
+          <>
+            <p className="text-muted" style={{ fontSize: '0.82rem', marginBottom: 12 }}>
+              ارفع ملف CSV بأي تنسيق. ستختار عمودَي الاسم والهاتف بعد القراءة.
+              أرقام الهاتف المكررة تُتجاهَل تلقائيًا.
+            </p>
+            <input
+              ref={csvRef}
+              type="file"
+              accept=".csv,text/csv,text/plain"
+              className="form-input"
+              onChange={handleCsvSelect}
+            />
+          </>
+        )}
+
+        {/* Step 1 — column mapping + preview */}
+        {csvStep === 1 && (
+          <>
+            <p className="text-muted" style={{ fontSize: '0.82rem', marginBottom: 14 }}>
+              تم قراءة <strong>{csvRawRows.length}</strong> صف.
+              حدّد أي عمود يمثّل الاسم وأيها يمثّل رقم الهاتف.
+            </p>
+
+            <div className="admin-form-grid" style={{ marginBottom: 14 }}>
+              <div className="form-group">
+                <label className="form-label">عمود الاسم</label>
+                <select className="form-input" value={nameColIdx} onChange={(e) => setNameColIdx(Number(e.target.value))}>
+                  {csvHeaders.map((h, i) => <option key={i} value={i}>{h || `العمود ${i + 1}`}</option>)}
+                </select>
+              </div>
+              <div className="form-group">
+                <label className="form-label">عمود رقم الهاتف</label>
+                <select className="form-input" value={phoneColIdx} onChange={(e) => setPhoneColIdx(Number(e.target.value))}>
+                  {csvHeaders.map((h, i) => <option key={i} value={i}>{h || `العمود ${i + 1}`}</option>)}
+                </select>
+              </div>
+            </div>
+
+            {/* Preview first 3 data rows */}
+            <div style={{ marginBottom: 14, overflowX: 'auto' }}>
+              <p style={{ fontSize: '0.8rem', fontWeight: 600, marginBottom: 6 }}>معاينة (أول ٣ صفوف):</p>
+              <table style={{ fontSize: '0.8rem', borderCollapse: 'collapse', width: '100%' }}>
+                <thead>
+                  <tr>
+                    <th style={{ padding: '4px 10px', background: 'var(--bg2,#f5f5f5)', textAlign: 'right', borderBottom: '1px solid var(--li)' }}>الاسم</th>
+                    <th style={{ padding: '4px 10px', background: 'var(--bg2,#f5f5f5)', textAlign: 'right', borderBottom: '1px solid var(--li)' }}>الهاتف</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {csvRawRows.slice(0, 3).map((row, i) => (
+                    <tr key={i}>
+                      <td style={{ padding: '4px 10px', borderBottom: '1px solid var(--li)' }}>{row[nameColIdx] || '—'}</td>
+                      <td style={{ padding: '4px 10px', borderBottom: '1px solid var(--li)' }} dir="ltr">{row[phoneColIdx] || '—'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button className="btn btn-primary btn-sm" onClick={handleUpload} disabled={uploading}>
+                {uploading ? 'جارٍ الرفع…' : `تأكيد الرفع (${csvRawRows.length} صف)`}
+              </button>
+              <button className="btn btn-ghost btn-sm" onClick={cancelCsv} disabled={uploading}>إلغاء</button>
+            </div>
+          </>
+        )}
+
+        {/* Upload summary */}
+        {uploadSummary && csvStep === 0 && (
+          <div style={{ marginTop: 12, padding: '10px 14px', background: 'rgba(16,185,129,.08)', borderRadius: 'var(--r-md)', border: '1px solid rgba(16,185,129,.2)', fontSize: '0.84rem' }}>
+            ✓ مشاركون جدد: <strong>{uploadSummary.inserted}</strong>
+            {uploadSummary.duplicated  > 0 && <span style={{ marginRight: 10 }}>· مكرر متجاهَل: {uploadSummary.duplicated}</span>}
+            {uploadSummary.skippedEmpty > 0 && <span style={{ marginRight: 10 }}>· صفوف فارغة: {uploadSummary.skippedEmpty}</span>}
+          </div>
         )}
       </div>
 
-      {/* Participants list */}
+      {/* ── Participants list ── */}
       {loading && <p className="text-muted" style={{ textAlign: 'center', padding: 24 }}>جارٍ التحميل…</p>}
 
       {!loading && participants !== null && (
         <>
           <div className="admin-list-header" style={{ marginBottom: 12 }}>
-            <span className="text-muted" style={{ fontSize: '0.85rem' }}>
-              {participants.length} مشارك
-            </span>
+            <span className="text-muted" style={{ fontSize: '0.85rem' }}>{participants.length} مشارك</span>
           </div>
-
           {participants.length === 0
             ? <p className="text-muted" style={{ padding: '20px 0', textAlign: 'center' }}>لا يوجد مشاركون مسجّلون بعد</p>
             : participants.map((p) => (
                 <div key={p.id} className="admin-row">
                   <div className="admin-row-info">
                     <strong>{p.name}</strong>
-                    <span className="text-muted">{p.phone}</span>
+                    <span className="text-muted" dir="ltr">{p.phone}</span>
                   </div>
                   <div className="admin-row-actions">
                     <button className="btn btn-danger btn-sm" onClick={() => del(p.id)}>حذف</button>

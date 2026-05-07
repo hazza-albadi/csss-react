@@ -152,19 +152,38 @@ export async function deleteTask(id) {
   if (error) throw error;
 }
 
+/* ══ Phone normalisation + UUID validation ═════════════════════ */
+
+/**
+ * Strip all non-digit characters so formatting differences
+ * (spaces, hyphens, dots, parentheses, leading +) never cause mismatches.
+ * e.g. "+968 9123-4567" → "96891234567"
+ */
+export function normalizePhone(raw) {
+  return String(raw).replace(/\D/g, '');
+}
+
+/** Postgres UUID v4 pattern — used to guard against local fallback IDs like "evt-001". */
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+export function isValidUuid(id) { return UUID_RE.test(id); }
+
 /* ══ Certificate participants ══════════════════════════════════ */
 
-/** Look up a single participant by event_id + phone. Returns { name, phone } or null. */
+/** Look up a single participant by event_id + normalised phone. Returns { name, phone } or null. */
 export async function lookupParticipant(eventId, phone) {
   if (!supabase) return null;
+  const norm = normalizePhone(phone);
+  if (!norm) return null;
+
+  // Try normalised form first, then fall back to raw value for existing data
   const { data, error } = await supabase
     .from('certificate_participants')
     .select('name, phone')
     .eq('event_id', eventId)
-    .eq('phone', phone.trim())
-    .maybeSingle();
+    .or(`phone.eq.${norm},phone.eq.${phone.trim()}`)
+    .limit(1);
   if (error) throw error;
-  return data; // { name, phone } or null
+  return data?.[0] ?? null;
 }
 
 /** Fetch all participants for an event. */
@@ -180,65 +199,86 @@ export async function fetchParticipants(eventId) {
 }
 
 /**
- * Parse CSV text → array of { name, phone }.
- * Expects two columns: name, phone (header row optional).
+ * Parse CSV text → { headers: string[], rawRows: string[][] }.
+ *
+ * headers  = first row if it looks like labels, otherwise generated ("العمود 1" …)
+ * rawRows  = data rows as raw string arrays (no mapping yet)
+ *
+ * Column selection is done by the caller via mapParticipantRows().
  */
 export function parseParticipantsCsv(text) {
-  const lines = text.split(/\r?\n/).filter((l) => l.trim());
-  if (lines.length === 0) return { rows: [], errors: [] };
+  const parseRow = (line) =>
+    line.split(',').map((c) => c.trim().replace(/^["']|["']$/g, ''));
 
-  // Detect & skip header
-  const firstLower = lines[0].toLowerCase();
-  const hasHeader =
-    firstLower.includes('name') || firstLower.includes('اسم') ||
-    firstLower.includes('phone') || firstLower.includes('هاتف');
-  const dataLines = hasHeader ? lines.slice(1) : lines;
+  const lines   = text.split(/\r?\n/).filter((l) => l.trim());
+  if (lines.length === 0) return { headers: [], rawRows: [] };
 
-  const rows   = [];
-  const errors = [];
+  const allRows   = lines.map(parseRow);
+  const firstRow  = allRows[0];
 
-  dataLines.forEach((line, idx) => {
-    const lineNum = idx + 1 + (hasHeader ? 1 : 0);
-    const cols = line.split(',').map((c) => c.trim().replace(/^["']|["']$/g, ''));
-    if (cols.length < 2) {
-      errors.push(`السطر ${lineNum}: يحتاج عمودَين على الأقل (الاسم، الهاتف)`);
-      return;
-    }
-    const [name, phone] = cols;
-    if (!name || !phone) {
-      errors.push(`السطر ${lineNum}: بيانات ناقصة`);
-      return;
-    }
-    rows.push({ name: name.trim(), phone: phone.trim() });
-  });
+  // A row looks like a header when at least one cell is non-numeric / non-phone
+  const looksLikeHeader = firstRow.some(
+    (c) => c && !/^\+?[\d\s\-\(\)\.]+$/.test(c)
+  );
 
-  return { rows, errors };
+  if (looksLikeHeader) {
+    return { headers: firstRow, rawRows: allRows.slice(1) };
+  }
+  // No header detected — generate generic labels and keep all rows as data
+  return {
+    headers: firstRow.map((_, i) => `العمود ${i + 1}`),
+    rawRows: allRows,
+  };
 }
 
 /**
- * Insert participants, skipping any phone numbers already in the table for this event.
- * Returns { inserted, skipped }.
+ * Map raw CSV rows to { name, phone } objects using chosen column indices.
+ * Phones are normalised. Empty rows are skipped.
+ * Returns { rows, skippedEmpty }.
+ */
+export function mapParticipantRows(rawRows, nameColIdx, phoneColIdx) {
+  const rows = [];
+  let skippedEmpty = 0;
+
+  for (const row of rawRows) {
+    const name  = (row[nameColIdx]  || '').trim();
+    const phone = normalizePhone(row[phoneColIdx] || '');
+    if (!name || !phone) { skippedEmpty++; continue; }
+    rows.push({ name, phone });
+  }
+
+  return { rows, skippedEmpty };
+}
+
+/**
+ * Insert participants, skipping phones already stored for this event.
+ * Phones are stored in normalised (digits-only) form.
+ * Returns { inserted, duplicated }.
+ * Throws if eventId is not a valid UUID.
  */
 export async function uploadParticipants(eventId, rows) {
   if (!supabase) throw new Error('Supabase غير مُهيَّأ');
-  if (rows.length === 0) return { inserted: 0, skipped: 0 };
+  if (!isValidUuid(eventId))
+    throw new Error('يجب حفظ الفعالية في قاعدة البيانات قبل رفع المشاركين');
+  if (rows.length === 0) return { inserted: 0, duplicated: 0 };
 
-  // Fetch existing phones to deduplicate
+  // Fetch existing phones (normalised) for deduplication
   const { data: existing } = await supabase
     .from('certificate_participants')
     .select('phone')
     .eq('event_id', eventId);
 
-  const existingPhones = new Set((existing || []).map((r) => r.phone));
-  const newRows = rows.filter((r) => !existingPhones.has(r.phone));
+  const existingPhones = new Set((existing || []).map((r) => normalizePhone(r.phone)));
+  const newRows        = rows.filter((r) => !existingPhones.has(r.phone));
+  const duplicated     = rows.length - newRows.length;
 
-  if (newRows.length === 0) return { inserted: 0, skipped: rows.length };
+  if (newRows.length === 0) return { inserted: 0, duplicated };
 
   const payload = newRows.map((r) => ({ event_id: eventId, name: r.name, phone: r.phone }));
   const { error } = await supabase.from('certificate_participants').insert(payload);
   if (error) throw error;
 
-  return { inserted: newRows.length, skipped: rows.length - newRows.length };
+  return { inserted: newRows.length, duplicated };
 }
 
 /** Delete a participant by id. */
