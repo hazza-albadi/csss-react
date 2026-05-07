@@ -223,18 +223,33 @@ function EventsTab({ data, update, toast }) {
   const save = async () => {
     if (!form.title.trim() || !form.date) { toast.show('العنوان والتاريخ مطلوبان', 'error'); return; }
     setSaving(true);
+
+    const hadFakeId = !isValidUuid(form.id);
+    let savedEvent  = form; // fallback to local copy if Supabase fails
+
     try {
-      await upsertEvent(form);
+      // upsertEvent returns the persisted row (with real UUID when id was fake)
+      savedEvent = await upsertEvent(form);
     } catch (err) {
       console.warn('Supabase upsert error:', err);
       toast.show('تم الحفظ محلياً — تعذّر الاتصال بقاعدة البيانات', 'error');
     }
+
+    // Replace the old local entry (matched by the OLD id) with the saved one
     update((d) => {
-      const idx = d.events.findIndex((e) => e.id === form.id);
-      if (idx > -1) { const evts = [...d.events]; evts[idx] = form; return { ...d, events: evts }; }
-      return { ...d, events: [form, ...d.events] };
+      const oldId = form.id;
+      const idx   = d.events.findIndex((e) => e.id === oldId);
+      if (idx > -1) { const evts = [...d.events]; evts[idx] = savedEvent; return { ...d, events: evts }; }
+      return { ...d, events: [savedEvent, ...d.events] };
     });
-    toast.show(editing === 'new' ? 'تمت إضافة الفعالية' : 'تم تحديث الفعالية');
+
+    // Show a special message when a fake id was promoted to a real UUID
+    if (hadFakeId && isValidUuid(savedEvent.id)) {
+      toast.show('تم حفظ الفعالية في قاعدة البيانات ويمكن الآن إدارة المشاركين');
+    } else {
+      toast.show(editing === 'new' ? 'تمت إضافة الفعالية' : 'تم تحديث الفعالية');
+    }
+
     setSaving(false);
     backList();
   };

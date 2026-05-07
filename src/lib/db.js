@@ -96,10 +96,39 @@ export async function fetchEvents() {
   return data.map(toLocalEvent);
 }
 
+/**
+ * Save an event to Supabase and return the persisted local-format object.
+ *
+ * - Real UUID id  → UPSERT (update existing row)
+ * - Fake/local id → INSERT without id (Supabase generates a real UUID)
+ *
+ * Always returns the saved event so callers can replace the local copy
+ * (including swapping out the fake id for the real UUID).
+ */
 export async function upsertEvent(event) {
   if (!supabase) throw new Error('Supabase غير مُهيَّأ');
-  const { error } = await supabase.from('events').upsert(toSupabaseEvent(event));
-  if (error) throw error;
+
+  if (isValidUuid(event.id)) {
+    // Update existing Supabase row
+    const { data, error } = await supabase
+      .from('events')
+      .upsert(toSupabaseEvent(event))
+      .select()
+      .single();
+    if (error) throw error;
+    return toLocalEvent(data);
+  } else {
+    // New row — omit the fake id; Supabase assigns a real UUID
+    const payload = toSupabaseEvent(event);
+    delete payload.id;
+    const { data, error } = await supabase
+      .from('events')
+      .insert(payload)
+      .select()
+      .single();
+    if (error) throw error;
+    return toLocalEvent(data);
+  }
 }
 
 export async function deleteEvent(id) {
