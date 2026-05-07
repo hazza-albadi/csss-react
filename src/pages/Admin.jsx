@@ -531,7 +531,7 @@ function ParticipantsPanel({ event, onBack, toast }) {
             <input
               ref={csvRef}
               type="file"
-              accept=".csv,text/csv,text/plain"
+              accept=".csv,.xlsx,.xls"
               className="form-input"
               onChange={handleCsvSelect}
             />
