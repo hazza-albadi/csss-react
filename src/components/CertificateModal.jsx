@@ -1,9 +1,14 @@
 import { useRef, useEffect, useState } from 'react';
 import { drawCertificate, downloadPNG, downloadPDF } from '../utils/certificate';
+import { lookupParticipant } from '../lib/db';
+import { isSupabaseReady } from '../lib/supabase';
 
 export default function CertificateModal({ event, onClose }) {
   const canvasRef = useRef(null);
-  const [name, setName] = useState('');
+  const [name,    setName]    = useState('');
+  const [phone,   setPhone]   = useState('');
+  const [looking, setLooking] = useState(false);
+  const [lookMsg, setLookMsg] = useState(null); // { text, ok }
 
   /* Redraw whenever name or event changes */
   useEffect(() => {
@@ -18,6 +23,26 @@ export default function CertificateModal({ event, onClose }) {
     return () => { document.body.style.overflow = ''; };
   }, []);
 
+  /* Phone lookup */
+  const handleLookup = async () => {
+    if (!phone.trim()) { setLookMsg({ text: 'أدخل رقم هاتفك للبحث', ok: false }); return; }
+    setLooking(true);
+    setLookMsg(null);
+    try {
+      const result = await lookupParticipant(event.id, phone.trim());
+      if (result) {
+        setName(result.name);
+        setLookMsg({ text: `تم العثور على: ${result.name}`, ok: true });
+      } else {
+        setLookMsg({ text: 'لم يُعثر على رقم الهاتف في قائمة المشاركين', ok: false });
+      }
+    } catch {
+      setLookMsg({ text: 'تعذّر الاتصال بقاعدة البيانات — أدخل اسمك يدويًا', ok: false });
+    } finally {
+      setLooking(false);
+    }
+  };
+
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal" onClick={(e) => e.stopPropagation()}>
@@ -26,15 +51,45 @@ export default function CertificateModal({ event, onClose }) {
         <h2 className="modal-title">شهادة المشاركة</h2>
         {event && <p className="modal-event-name">{event.title}</p>}
 
+        {/* Phone lookup — only shown when Supabase is configured */}
+        {isSupabaseReady && (
+          <div className="modal-lookup-row">
+            <input
+              className="form-input"
+              type="tel"
+              value={phone}
+              onChange={(e) => { setPhone(e.target.value); setLookMsg(null); }}
+              onKeyDown={(e) => e.key === 'Enter' && handleLookup()}
+              placeholder="رقم الهاتف للبحث عن اسمك…"
+              dir="ltr"
+            />
+            <button
+              className="btn btn-outline btn-sm"
+              onClick={handleLookup}
+              disabled={looking}
+              style={{ whiteSpace: 'nowrap' }}
+            >
+              {looking ? '…' : 'بحث'}
+            </button>
+          </div>
+        )}
+
+        {lookMsg && (
+          <p className={`lookup-msg ${lookMsg.ok ? 'lookup-ok' : 'lookup-err'}`}>
+            {lookMsg.text}
+          </p>
+        )}
+
+        {/* Manual name entry */}
         <div className="modal-name-row">
           <input
             className="form-input"
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="أدخل اسمك الكامل…"
+            placeholder="أو أدخل اسمك الكامل يدويًا…"
             dir="rtl"
-            autoFocus
+            autoFocus={!isSupabaseReady}
           />
         </div>
 

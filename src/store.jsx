@@ -1,4 +1,6 @@
-import { createContext, useContext, useState, useCallback } from 'react';
+import { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import { supabase } from './lib/supabase';
+import { toLocalEvent, toLocalAchievement, toLocalTask } from './lib/db';
 
 const STORE_KEY = 'csss_v2';
 
@@ -230,6 +232,37 @@ export function StoreProvider({ children }) {
       return next;
     });
   }, []);
+
+  /* ── Background sync from Supabase on mount ── */
+  useEffect(() => {
+    if (!supabase) return;
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const [evtRes, achRes, taskRes] = await Promise.all([
+          supabase.from('events').select('*').order('date', { ascending: false }),
+          supabase.from('achievements').select('*'),
+          supabase.from('tasks').select('*'),
+        ]);
+
+        if (cancelled) return;
+
+        setData((prev) => {
+          const next = { ...prev };
+          if (evtRes.data?.length)  next.events       = evtRes.data.map(toLocalEvent);
+          if (achRes.data?.length)  next.achievements = achRes.data.map(toLocalAchievement);
+          if (taskRes.data?.length) next.tasks        = taskRes.data.map(toLocalTask);
+          persist(next);
+          return next;
+        });
+      } catch {
+        /* silently keep localStorage data if Supabase unavailable */
+      }
+    })();
+
+    return () => { cancelled = true; };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   return <StoreCtx.Provider value={{ data, update }}>{children}</StoreCtx.Provider>;
 }

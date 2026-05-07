@@ -11,19 +11,27 @@ import Admin  from './pages/Admin';
 
 const PAGES = { home: Home, about: About, events: Events, join: Join, admin: Admin };
 
+/* pathname → page key */
+function pathToPage(pathname) {
+  const p = pathname.replace(/\/$/, '') || '/';
+  const map = { '/': 'home', '/about': 'about', '/events': 'events', '/join': 'join', '/admin': 'admin' };
+  return map[p] ?? 'home';
+}
+
+/* page key → pathname */
+function pageToPath(page) {
+  return page === 'home' ? '/' : `/${page}`;
+}
+
 export default function App() {
-  const [page,    setPage]    = useState('home');
+  const [page,    setPage]    = useState(() => pathToPage(window.location.pathname));
   const [exiting, setExiting] = useState(false);
 
-  /* Hash router */
+  /* History API router — handles browser back/forward */
   useEffect(() => {
-    const sync = () => {
-      const hash = window.location.hash.slice(1) || 'home';
-      setPage(PAGES[hash] ? hash : 'home');
-    };
-    window.addEventListener('hashchange', sync);
-    sync();
-    return () => window.removeEventListener('hashchange', sync);
+    const sync = () => setPage(pathToPage(window.location.pathname));
+    window.addEventListener('popstate', sync);
+    return () => window.removeEventListener('popstate', sync);
   }, []);
 
   /* Navigate with page-exit transition */
@@ -31,7 +39,8 @@ export default function App() {
     if (route === page) return;
     setExiting(true);
     setTimeout(() => {
-      window.location.hash = route;
+      window.history.pushState(null, '', pageToPath(route));
+      setPage(route);
       setExiting(false);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }, 260);

@@ -1,6 +1,14 @@
 import { useState, useRef } from 'react';
-import { useStore, generateId, ADMIN_PASSWORD } from '../store';
+import { useStore, generateId } from '../store';
 import { formatDate } from '../utils/helpers';
+import { supabase, isSupabaseReady } from '../lib/supabase';
+import {
+  upsertEvent,   deleteEvent,
+  upsertAchievement, deleteAchievement,
+  upsertTask,    deleteTask,
+  fetchParticipants, uploadParticipants, deleteParticipant,
+  parseParticipantsCsv,
+} from '../lib/db';
 
 /* ════════════════════════════════════════════════════════════
    ADMIN PANEL
@@ -20,39 +28,108 @@ const STATUS_COLORS = { 'not-started': 'status-ns', 'in-progress': 'status-ip', 
 const COM_SECTIONS  = ['المشاريع', 'الإعلام', 'العلاقات', 'التنظيم', 'المالية'];
 
 export default function Admin() {
-  const [authed, setAuthed] = useState(false);
-  const [pass,   setPass]   = useState('');
-  const [err,    setErr]    = useState(false);
+  // undefined = still loading session, null = no session, object = active session
+  const [session, setSession] = useState(undefined);
+  const [email,   setEmail]   = useState('');
+  const [pass,    setPass]    = useState('');
+  const [err,     setErr]     = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const tryLogin = () => {
-    if (pass === ADMIN_PASSWORD) { setAuthed(true); setErr(false); }
-    else { setErr(true); setPass(''); }
+  /* ── Check session on mount + subscribe to auth changes ── */
+  useEffect(() => {
+    if (!supabase) {
+      setSession(null); // no Supabase → always show login (will fail gracefully)
+      return;
+    }
+
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session ?? null);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session ?? null);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    if (!supabase) { setErr('حدث خطأ في تسجيل الدخول'); return; }
+    setLoading(true);
+    setErr('');
+    const { error } = await supabase.auth.signInWithPassword({ email, password: pass });
+    if (error) {
+      setErr(error.status === 400 ? 'بيانات الدخول غير صحيحة' : 'حدث خطأ في تسجيل الدخول');
+    }
+    // On success, onAuthStateChange fires → setSession → re-render to dashboard
+    setLoading(false);
   };
 
-  if (!authed) {
+  const handleLogout = async () => {
+    await supabase?.auth.signOut();
+  };
+
+  /* ── Loading session check ── */
+  if (session === undefined) {
     return (
       <div className="admin-login-wrap">
-        <div className="admin-login-card">
-          <div className="admin-lock">🔐</div>
-          <h2>لوحة الإدارة</h2>
-          <p className="text-muted">أدخل كلمة المرور للدخول</p>
-          <input
-            className={`form-input${err ? ' form-input--error' : ''}`}
-            type="password"
-            value={pass}
-            onChange={(e) => { setPass(e.target.value); setErr(false); }}
-            onKeyDown={(e) => e.key === 'Enter' && tryLogin()}
-            placeholder="كلمة المرور"
-            autoFocus
-          />
-          {err && <p className="admin-error">كلمة المرور غير صحيحة</p>}
-          <button className="btn btn-primary btn-full" onClick={tryLogin}>دخول</button>
+        <div className="admin-login-card" style={{ textAlign: 'center' }}>
+          <p className="text-muted">جارٍ التحقق من الجلسة…</p>
         </div>
       </div>
     );
   }
 
-  return <AdminDashboard onLogout={() => setAuthed(false)} />;
+  /* ── Not logged in → show login form ── */
+  if (!session) {
+    return (
+      <div className="admin-login-wrap">
+        <div className="admin-login-card">
+          <div className="admin-lock">🔐</div>
+          <h2>لوحة الإدارة</h2>
+          <p className="text-muted">أدخل بيانات الدخول للمتابعة</p>
+
+          <form onSubmit={handleLogin}>
+            <div className="form-group">
+              <input
+                className="form-input"
+                type="email"
+                value={email}
+                onChange={(e) => { setEmail(e.target.value); setErr(''); }}
+                placeholder="البريد الإلكتروني"
+                dir="ltr"
+                autoFocus
+                required
+              />
+            </div>
+            <div className="form-group" style={{ marginTop: 12 }}>
+              <input
+                className={`form-input${err ? ' form-input--error' : ''}`}
+                type="password"
+                value={pass}
+                onChange={(e) => { setPass(e.target.value); setErr(''); }}
+                placeholder="كلمة المرور"
+                required
+              />
+            </div>
+            {err && <p className="admin-error">{err}</p>}
+            <button
+              className="btn btn-primary btn-full"
+              type="submit"
+              disabled={loading}
+              style={{ marginTop: 16 }}
+            >
+              {loading ? 'جارٍ تسجيل الدخول…' : 'دخول'}
+            </button>
+          </form>
+        </div>
+      </div>
+    );
+  }
+
+  /* ── Logged in → show dashboard ── */
+  return <AdminDashboard onLogout={handleLogout} />;
 }
 
 /* ── Dashboard shell ── */
@@ -66,7 +143,13 @@ function AdminDashboard({ onLogout }) {
       <div className="container">
         <div className="admin-header">
           <h1 className="admin-title">لوحة الإدارة</h1>
-          <button className="btn btn-ghost btn-sm" onClick={onLogout}>تسجيل الخروج</button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            {isSupabaseReady
+              ? <span className="badge badge-success" style={{ fontSize: '0.75rem' }}>● Supabase متصل</span>
+              : <span className="badge badge-muted"   style={{ fontSize: '0.75rem' }}>○ وضع محلي فقط</span>
+            }
+            <button className="btn btn-ghost btn-sm" onClick={onLogout}>تسجيل الخروج</button>
+          </div>
         </div>
 
         <div className="admin-tabs">
@@ -97,7 +180,10 @@ function AdminDashboard({ onLogout }) {
 
 /* ══ EVENTS TAB ══════════════════════════════════════════════ */
 function EventsTab({ data, update, toast }) {
+  const [view,    setView]    = useState('list');   // 'list' | 'form' | 'participants'
   const [editing, setEditing] = useState(null);
+  const [partEvt, setPartEvt] = useState(null);     // event for participant management
+  const [saving,  setSaving]  = useState(false);
   const fileRef = useRef(null);
 
   const blankEvent = () => ({
@@ -109,8 +195,10 @@ function EventsTab({ data, update, toast }) {
 
   const [form, setForm] = useState(blankEvent());
 
-  const openNew  = ()    => { setForm(blankEvent()); setEditing('new'); };
-  const openEdit = (ev)  => { setForm({ nameColor: '#ffffff', ...ev }); setEditing(ev.id); };
+  const openNew  = ()    => { setForm(blankEvent()); setEditing('new'); setView('form'); };
+  const openEdit = (ev)  => { setForm({ nameColor: '#ffffff', ...ev }); setEditing(ev.id); setView('form'); };
+  const openPart = (ev)  => { setPartEvt(ev); setView('participants'); };
+  const backList = ()    => { setView('list'); setEditing(null); setPartEvt(null); };
 
   const handleImage = (e) => {
     const file = e.target.files[0]; if (!file) return;
@@ -126,31 +214,49 @@ function EventsTab({ data, update, toast }) {
     reader.readAsDataURL(file);
   };
 
-  const save = () => {
+  const save = async () => {
     if (!form.title.trim() || !form.date) { toast.show('العنوان والتاريخ مطلوبان', 'error'); return; }
+    setSaving(true);
+    try {
+      await upsertEvent(form);
+    } catch (err) {
+      console.warn('Supabase upsert error:', err);
+      toast.show('تم الحفظ محلياً — تعذّر الاتصال بقاعدة البيانات', 'error');
+    }
     update((d) => {
       const idx = d.events.findIndex((e) => e.id === form.id);
       if (idx > -1) { const evts = [...d.events]; evts[idx] = form; return { ...d, events: evts }; }
       return { ...d, events: [form, ...d.events] };
     });
     toast.show(editing === 'new' ? 'تمت إضافة الفعالية' : 'تم تحديث الفعالية');
-    setEditing(null);
+    setSaving(false);
+    backList();
   };
 
-  const del = (id) => {
+  const del = async (id) => {
     if (!confirm('هل أنت متأكد من الحذف؟')) return;
+    try { await deleteEvent(id); } catch (err) { console.warn('Supabase delete error:', err); }
     update((d) => ({ ...d, events: d.events.filter((e) => e.id !== id) }));
     toast.show('تم حذف الفعالية');
   };
 
-  const f = (key) => (e) => setForm((prev) => ({ ...prev, [key]: e.target.type === 'checkbox' ? e.target.checked : e.target.value }));
+  const f = (key) => (e) => setForm((prev) => ({
+    ...prev,
+    [key]: e.target.type === 'checkbox' ? e.target.checked : e.target.value,
+  }));
 
-  if (editing !== null) {
+  /* ── Participants view ── */
+  if (view === 'participants' && partEvt) {
+    return <ParticipantsPanel event={partEvt} onBack={backList} toast={toast} />;
+  }
+
+  /* ── Form view ── */
+  if (view === 'form') {
     return (
       <div className="admin-form-panel">
         <div className="admin-form-header">
           <h3>{editing === 'new' ? 'إضافة فعالية' : 'تعديل الفعالية'}</h3>
-          <button className="btn btn-ghost btn-sm" onClick={() => setEditing(null)}>← رجوع</button>
+          <button className="btn btn-ghost btn-sm" onClick={backList}>← رجوع</button>
         </div>
 
         <div className="admin-form-grid">
@@ -202,11 +308,11 @@ function EventsTab({ data, update, toast }) {
                 <p className="cert-upload-warning">⚠️ المقاس المعتمد للشهادة: 1200 × 850 بكسل. يرجى الالتزام بنفس النسبة لتجنب تشوه التصميم.</p>
                 <input type="file" accept="image/*" className="form-input" onChange={handleCertTemplate} />
                 {form.certificateTemplate
-                  ? <span className="badge badge-success" style={{marginTop:8,display:'inline-block'}}>✓ قالب مرفوع</span>
-                  : <span className="text-muted" style={{fontSize:'0.82rem'}}>إذا لم يُرفع قالب سيُستخدم التصميم الافتراضي</span>
+                  ? <span className="badge badge-success" style={{ marginTop: 8, display: 'inline-block' }}>✓ قالب مرفوع</span>
+                  : <span className="text-muted" style={{ fontSize: '0.82rem' }}>إذا لم يُرفع قالب سيُستخدم التصميم الافتراضي</span>
                 }
                 {form.certificateTemplate && (
-                  <button className="btn btn-ghost btn-sm" style={{marginTop:8, display:'block'}} onClick={() => setForm(f2 => ({...f2, certificateTemplate: null}))}>
+                  <button className="btn btn-ghost btn-sm" style={{ marginTop: 8, display: 'block' }} onClick={() => setForm((f2) => ({ ...f2, certificateTemplate: null }))}>
                     مسح القالب
                   </button>
                 )}
@@ -225,14 +331,14 @@ function EventsTab({ data, update, toast }) {
               </div>
               <div className="form-group">
                 <label className="form-label">لون اسم المشارك</label>
-                <div style={{display:'flex', alignItems:'center', gap:10, marginTop:4}}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 4 }}>
                   <input
                     type="color"
                     value={form.nameColor || '#ffffff'}
                     onChange={f('nameColor')}
-                    style={{width:44, height:36, border:'1.5px solid var(--li)', cursor:'pointer', borderRadius:6, padding:2}}
+                    style={{ width: 44, height: 36, border: '1.5px solid var(--li)', cursor: 'pointer', borderRadius: 6, padding: 2 }}
                   />
-                  <span className="text-muted" style={{fontSize:'0.82rem'}}>{form.nameColor || '#ffffff'}</span>
+                  <span className="text-muted" style={{ fontSize: '0.82rem' }}>{form.nameColor || '#ffffff'}</span>
                 </div>
               </div>
             </>
@@ -240,13 +346,16 @@ function EventsTab({ data, update, toast }) {
         </div>
 
         <div className="form-actions">
-          <button className="btn btn-primary" onClick={save}>حفظ</button>
-          <button className="btn btn-ghost" onClick={() => setEditing(null)}>إلغاء</button>
+          <button className="btn btn-primary" onClick={save} disabled={saving}>
+            {saving ? 'جارٍ الحفظ…' : 'حفظ'}
+          </button>
+          <button className="btn btn-ghost" onClick={backList} disabled={saving}>إلغاء</button>
         </div>
       </div>
     );
   }
 
+  /* ── List view ── */
   return (
     <div className="admin-list-panel">
       <div className="admin-list-header">
@@ -263,11 +372,141 @@ function EventsTab({ data, update, toast }) {
             <span className="text-muted">{formatDate(ev.date)}</span>
           </div>
           <div className="admin-row-actions">
+            {ev.hasCertificate && isSupabaseReady && (
+              <button className="btn btn-ghost btn-sm" onClick={() => openPart(ev)}>المشاركون</button>
+            )}
             <button className="btn btn-ghost btn-sm" onClick={() => openEdit(ev)}>تعديل</button>
             <button className="btn btn-danger btn-sm" onClick={() => del(ev.id)}>حذف</button>
           </div>
         </div>
       ))}
+      {data.events.length === 0 && (
+        <div className="empty-state" style={{ padding: '40px' }}><p>لا توجد فعاليات. اضغط "+ إضافة" للبدء.</p></div>
+      )}
+    </div>
+  );
+}
+
+/* ══ PARTICIPANTS PANEL (CSV upload + list) ═══════════════════ */
+function ParticipantsPanel({ event, onBack, toast }) {
+  const csvRef                        = useRef(null);
+  const [participants, setParticipants] = useState(null); // null = not loaded yet
+  const [loading,      setLoading]      = useState(false);
+  const [uploading,    setUploading]    = useState(false);
+  const [csvErrors,    setCsvErrors]    = useState([]);
+
+  const load = async () => {
+    setLoading(true);
+    try {
+      const rows = await fetchParticipants(event.id);
+      setParticipants(rows);
+    } catch {
+      toast.show('تعذّر تحميل قائمة المشاركين', 'error');
+      setParticipants([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Load on first render
+  if (participants === null && !loading) { load(); }
+
+  const handleCsv = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const text = await file.text();
+    const { rows, errors } = parseParticipantsCsv(text);
+    setCsvErrors(errors);
+
+    if (rows.length === 0) {
+      toast.show(errors.length ? 'ملف CSV يحتوي أخطاء — راجع القائمة أدناه' : 'لم يُعثر على بيانات في الملف', 'error');
+      return;
+    }
+
+    setUploading(true);
+    try {
+      const { inserted, skipped } = await uploadParticipants(event.id, rows);
+      toast.show(`تم رفع ${inserted} مشارك${skipped > 0 ? ` (تخطّي ${skipped} مكرر)` : ''}`);
+      await load(); // refresh list
+    } catch (err) {
+      toast.show('فشل رفع البيانات: ' + (err.message || 'خطأ غير معروف'), 'error');
+    } finally {
+      setUploading(false);
+      if (csvRef.current) csvRef.current.value = '';
+    }
+  };
+
+  const del = async (id) => {
+    if (!confirm('هل أنت متأكد من حذف هذا المشارك؟')) return;
+    try {
+      await deleteParticipant(id);
+      setParticipants((p) => p.filter((r) => r.id !== id));
+      toast.show('تم حذف المشارك');
+    } catch {
+      toast.show('تعذّر حذف المشارك', 'error');
+    }
+  };
+
+  return (
+    <div className="admin-list-panel">
+      <div className="admin-form-header">
+        <div>
+          <h3>مشاركو الشهادة</h3>
+          <p className="text-muted" style={{ fontSize: '0.85rem', margin: '4px 0 0' }}>{event.title}</p>
+        </div>
+        <button className="btn btn-ghost btn-sm" onClick={onBack}>← رجوع</button>
+      </div>
+
+      {/* CSV upload */}
+      <div className="content-fieldset" style={{ marginBottom: 24 }}>
+        <p style={{ fontWeight: 600, marginBottom: 8 }}>رفع قائمة المشاركين (CSV)</p>
+        <p className="text-muted" style={{ fontSize: '0.82rem', marginBottom: 12 }}>
+          يجب أن يحتوي الملف على عمودَين: <strong>الاسم، رقم الهاتف</strong> (مع رأس اختياري).
+          سيتم تخطّي أرقام الهاتف المكررة تلقائيًا.
+        </p>
+        <input
+          ref={csvRef}
+          type="file"
+          accept=".csv,text/csv,text/plain"
+          className="form-input"
+          onChange={handleCsv}
+          disabled={uploading}
+        />
+        {uploading && <p className="text-muted" style={{ marginTop: 8 }}>جارٍ الرفع…</p>}
+        {csvErrors.length > 0 && (
+          <ul style={{ marginTop: 10, color: 'var(--danger, #e55)', fontSize: '0.82rem', paddingInlineStart: 18 }}>
+            {csvErrors.map((e, i) => <li key={i}>{e}</li>)}
+          </ul>
+        )}
+      </div>
+
+      {/* Participants list */}
+      {loading && <p className="text-muted" style={{ textAlign: 'center', padding: 24 }}>جارٍ التحميل…</p>}
+
+      {!loading && participants !== null && (
+        <>
+          <div className="admin-list-header" style={{ marginBottom: 12 }}>
+            <span className="text-muted" style={{ fontSize: '0.85rem' }}>
+              {participants.length} مشارك
+            </span>
+          </div>
+
+          {participants.length === 0
+            ? <p className="text-muted" style={{ padding: '20px 0', textAlign: 'center' }}>لا يوجد مشاركون مسجّلون بعد</p>
+            : participants.map((p) => (
+                <div key={p.id} className="admin-row">
+                  <div className="admin-row-info">
+                    <strong>{p.name}</strong>
+                    <span className="text-muted">{p.phone}</span>
+                  </div>
+                  <div className="admin-row-actions">
+                    <button className="btn btn-danger btn-sm" onClick={() => del(p.id)}>حذف</button>
+                  </div>
+                </div>
+              ))
+          }
+        </>
+      )}
     </div>
   );
 }
@@ -356,11 +595,11 @@ function ContentTab({ data, update, toast }) {
         <div className="stats-edit-grid">
           {statsForm.map((stat, i) => (
             <div key={stat.id} className="stats-edit-item">
-              <div className="form-group" style={{marginBottom:8}}>
+              <div className="form-group" style={{ marginBottom: 8 }}>
                 <label className="form-label">الرقم {i + 1}</label>
                 <input className="form-input" value={stat.num} onChange={(e) => updateStat(i, 'num', e.target.value)} placeholder="500+" />
               </div>
-              <div className="form-group" style={{marginBottom:0}}>
+              <div className="form-group" style={{ marginBottom: 0 }}>
                 <label className="form-label">التسمية</label>
                 <input className="form-input" value={stat.label} onChange={(e) => updateStat(i, 'label', e.target.value)} placeholder="طالب مستفيد" />
               </div>
@@ -405,6 +644,7 @@ function ContentTab({ data, update, toast }) {
 /* ══ ACHIEVEMENTS TAB ═══════════════════════════════════════ */
 function AchievementsTab({ data, update, toast }) {
   const [editing, setEditing] = useState(null);
+  const [saving,  setSaving]  = useState(false);
   const fileRef = useRef(null);
 
   const blank = () => ({ id: generateId('ach'), icon: '🏆', title: '', description: '', image: null });
@@ -422,8 +662,15 @@ function AchievementsTab({ data, update, toast }) {
 
   const af = (key) => (e) => setForm((prev) => ({ ...prev, [key]: e.target.value }));
 
-  const save = () => {
+  const save = async () => {
     if (!form.title.trim()) { toast.show('العنوان مطلوب', 'error'); return; }
+    setSaving(true);
+    try {
+      await upsertAchievement(form);
+    } catch (err) {
+      console.warn('Supabase upsert error:', err);
+      toast.show('تم الحفظ محلياً — تعذّر الاتصال بقاعدة البيانات', 'error');
+    }
     update((d) => {
       const idx = d.achievements.findIndex((a) => a.id === form.id);
       if (idx > -1) {
@@ -433,11 +680,13 @@ function AchievementsTab({ data, update, toast }) {
       return { ...d, achievements: [form, ...d.achievements] };
     });
     toast.show(editing === 'new' ? 'تمت إضافة الإنجاز' : 'تم تحديث الإنجاز');
+    setSaving(false);
     setEditing(null);
   };
 
-  const del = (id) => {
+  const del = async (id) => {
     if (!confirm('هل أنت متأكد من الحذف؟')) return;
+    try { await deleteAchievement(id); } catch (err) { console.warn('Supabase delete error:', err); }
     update((d) => ({ ...d, achievements: d.achievements.filter((a) => a.id !== id) }));
     toast.show('تم حذف الإنجاز');
   };
@@ -468,14 +717,14 @@ function AchievementsTab({ data, update, toast }) {
             {form.image && (
               <>
                 <img src={form.image} className="preview-img" alt="preview" />
-                <button className="btn btn-ghost btn-sm" style={{marginTop:8}} onClick={() => setForm(f2 => ({...f2, image: null}))}>مسح الصورة</button>
+                <button className="btn btn-ghost btn-sm" style={{ marginTop: 8 }} onClick={() => setForm((f2) => ({ ...f2, image: null }))}>مسح الصورة</button>
               </>
             )}
           </div>
         </div>
         <div className="form-actions">
-          <button className="btn btn-primary" onClick={save}>حفظ</button>
-          <button className="btn btn-ghost" onClick={() => setEditing(null)}>إلغاء</button>
+          <button className="btn btn-primary" onClick={save} disabled={saving}>{saving ? 'جارٍ الحفظ…' : 'حفظ'}</button>
+          <button className="btn btn-ghost" onClick={() => setEditing(null)} disabled={saving}>إلغاء</button>
         </div>
       </div>
     );
@@ -490,7 +739,7 @@ function AchievementsTab({ data, update, toast }) {
       {(data.achievements || []).map((a) => (
         <div key={a.id} className="admin-row">
           <div className="admin-row-info">
-            <span style={{fontSize:'1.4rem', lineHeight:1}}>{a.icon}</span>
+            <span style={{ fontSize: '1.4rem', lineHeight: 1 }}>{a.icon}</span>
             <strong>{a.title}</strong>
             <span className="text-muted">{a.description?.slice(0, 60)}{a.description?.length > 60 ? '…' : ''}</span>
           </div>
@@ -501,7 +750,7 @@ function AchievementsTab({ data, update, toast }) {
         </div>
       ))}
       {(data.achievements || []).length === 0 && (
-        <div className="empty-state" style={{padding:'40px'}}><p>لا توجد إنجازات. اضغط "+ إضافة" للبدء.</p></div>
+        <div className="empty-state" style={{ padding: '40px' }}><p>لا توجد إنجازات. اضغط "+ إضافة" للبدء.</p></div>
       )}
     </div>
   );
@@ -512,26 +761,34 @@ function TasksTab({ data, update, toast }) {
   const [editId, setEditId] = useState(null);
   const [draft,  setDraft]  = useState({});
 
-  const newTask = (committee) => {
+  const newTask = async (committee) => {
     const t = {
       id: generateId('task'), name: '', event: '',
       committee, deadline: '', status: 'not-started', notes: '',
     };
+    // Add to local store first for immediate UI feedback
     update((d) => ({ ...d, tasks: [t, ...d.tasks] }));
+    // Persist to Supabase (don't block UI)
+    try { await upsertTask(t); } catch (err) { console.warn('Supabase upsert error:', err); }
     setEditId(t.id);
     setDraft(t);
   };
 
   const startEdit = (t) => { setEditId(t.id); setDraft({ ...t }); };
 
-  const saveEdit = () => {
+  const saveEdit = async () => {
     update((d) => ({ ...d, tasks: d.tasks.map((t) => t.id === editId ? draft : t) }));
+    try { await upsertTask(draft); } catch (err) {
+      console.warn('Supabase upsert error:', err);
+      toast.show('تم الحفظ محلياً — تعذّر الاتصال بقاعدة البيانات', 'error');
+    }
     setEditId(null);
     toast.show('تم حفظ المهمة');
   };
 
-  const del = (id) => {
+  const del = async (id) => {
     update((d) => ({ ...d, tasks: d.tasks.filter((t) => t.id !== id) }));
+    try { await deleteTask(id); } catch (err) { console.warn('Supabase delete error:', err); }
     toast.show('تم حذف المهمة');
   };
 
@@ -541,7 +798,7 @@ function TasksTab({ data, update, toast }) {
 
   return (
     <div className="admin-tasks-panel">
-      <div className="admin-list-header" style={{marginBottom:28}}>
+      <div className="admin-list-header" style={{ marginBottom: 28 }}>
         <h3>إدارة المهام ({totalCount})</h3>
       </div>
 
