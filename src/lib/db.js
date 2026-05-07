@@ -11,6 +11,7 @@
  *   certificate_participants: id, event_id, name, phone, created_at
  */
 import { supabase } from './supabase';
+import * as XLSX from 'xlsx';
 
 /* ══ Mappers ═══════════════════════════════════════════════════ */
 
@@ -265,6 +266,52 @@ export function parseParticipantsCsv(text) {
  * Phones are normalised. Empty rows are skipped.
  * Returns { rows, skippedEmpty }.
  */
+/**
+ * Unified file parser — handles .csv, .xlsx, .xls.
+ * Returns the same { headers, rawRows } shape as parseParticipantsCsv so the
+ * column-mapping UI works identically for all formats.
+ *
+ * All cell values are coerced to strings so phone numbers stored as Excel
+ * numbers (e.g. 96891234567) don't lose leading zeros or gain decimals.
+ * Arabic text is preserved as-is by the xlsx library.
+ */
+export async function parseSpreadsheetFile(file) {
+  const ext = file.name.split('.').pop().toLowerCase();
+
+  if (ext === 'csv') {
+    const text = await file.text();
+    return parseParticipantsCsv(text);
+  }
+
+  // xlsx / xls — read as binary ArrayBuffer
+  const buffer  = await file.arrayBuffer();
+  const wb      = XLSX.read(buffer, { type: 'array' });
+  const ws      = wb.Sheets[wb.SheetNames[0]];
+
+  // header:1 → array-of-arrays; defval:'' fills missing cells
+  const allRows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+  if (allRows.length === 0) return { headers: [], rawRows: [] };
+
+  // Coerce every cell to a trimmed string
+  const strRows = allRows.map((row) =>
+    row.map((cell) => String(cell ?? '').trim())
+  );
+
+  const firstRow = strRows[0];
+  // Detect header row: contains at least one non-phone-like cell
+  const looksLikeHeader = firstRow.some(
+    (c) => c && !/^\+?[\d\s\-\(\)\.]+$/.test(c)
+  );
+
+  if (looksLikeHeader) {
+    return { headers: firstRow, rawRows: strRows.slice(1) };
+  }
+  return {
+    headers: firstRow.map((_, i) => `العمود ${i + 1}`),
+    rawRows: strRows,
+  };
+}
+
 export function mapParticipantRows(rawRows, nameColIdx, phoneColIdx) {
   const rows = [];
   let skippedEmpty = 0;

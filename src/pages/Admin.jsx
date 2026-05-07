@@ -7,7 +7,7 @@ import {
   upsertAchievement, deleteAchievement,
   upsertTask,    deleteTask,
   fetchParticipants, uploadParticipants, deleteParticipant,
-  parseParticipantsCsv, mapParticipantRows, isValidUuid,
+  parseSpreadsheetFile, mapParticipantRows, isValidUuid,
 } from '../lib/db';
 
 /* ════════════════════════════════════════════════════════════
@@ -464,8 +464,13 @@ function ParticipantsPanel({ event, onBack, toast }) {
   const handleCsvSelect = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    const text = await file.text();
-    const { headers, rawRows } = parseParticipantsCsv(text);
+    let parsed;
+    try {
+      parsed = await parseSpreadsheetFile(file);
+    } catch {
+      toast.show('تعذّر قراءة الملف. تأكد أنه CSV أو Excel صالح.', 'error'); return;
+    }
+    const { headers, rawRows } = parsed;
     if (rawRows.length === 0) { toast.show('لم يُعثر على بيانات في الملف', 'error'); return; }
     setCsvHeaders(headers);
     setCsvRawRows(rawRows);
