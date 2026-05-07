@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useStore, generateId } from '../store';
 import { formatDate } from '../utils/helpers';
 import { supabase, isSupabaseReady } from '../lib/supabase';
