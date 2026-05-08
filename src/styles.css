@@ -138,9 +138,10 @@ label, .nav-link, .mobile-nav-link, .events-tab { font-weight: 500; }
 
 /* ── 4. LAYOUT HELPERS ────────────────────────────────────── */
 .container { width: 100%; max-width: 1180px; margin: 0 auto; padding: 0 24px; }
-.section    { padding: 80px 0; }
+.section    { padding: 80px 0; background: linear-gradient(180deg, var(--bg) 0%, #eff5fb 100%); }
 .section-tinted {
-  background: var(--bg2);
+  /* Gradient gives backdrop-filter something to blur, making glass cards visible */
+  background: linear-gradient(135deg, var(--bg2) 0%, #dce8f5 100%);
   box-shadow: inset 0 1px 0 var(--li), inset 0 -1px 0 var(--li);
 }
 .page-wrapper { padding-top: var(--nav-h); }
@@ -665,13 +666,17 @@ label, .nav-link, .mobile-nav-link, .events-tab { font-weight: 500; }
   gap: 28px;
 }
 .hl-card {
-  background: var(--g-card);
-  border: 1px solid var(--li);
+  background: linear-gradient(145deg, rgba(255,255,255,.9) 0%, rgba(247,244,251,.72) 100%);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255,255,255,.88);
   border-radius: var(--r-xl);
   padding: 36px 28px;
   text-align: center;
-  box-shadow: var(--sh-card);
-  transition: transform var(--t) var(--ease), box-shadow var(--t) var(--ease), border-color var(--t) var(--ease);
+  box-shadow:
+    0 4px 24px rgba(67,45,97,.08),
+    inset 0 1px 0 rgba(255,255,255,.95);
+  transition: transform var(--t) var(--ease), box-shadow var(--t) var(--ease), border-color var(--t) var(--ease), background var(--t);
   will-change: transform, box-shadow;
   position: relative;
   overflow: hidden;
@@ -686,7 +691,15 @@ label, .nav-link, .mobile-nav-link, .events-tab { font-weight: 500; }
   transition: transform 0.4s var(--ease);
   transform-origin: right;
 }
-.hl-card:hover { transform: translateY(-7px); box-shadow: var(--sh-card-hover), 0 0 24px rgba(63,164,211,.14); border-color: rgba(63,164,211,.22); }
+.hl-card:hover {
+  transform: translateY(-7px);
+  background: linear-gradient(145deg, rgba(255,255,255,.97) 0%, rgba(247,244,251,.88) 100%);
+  box-shadow:
+    0 14px 40px rgba(67,45,97,.13),
+    0 0 28px rgba(63,164,211,.12),
+    inset 0 1px 0 rgba(255,255,255,.98);
+  border-color: rgba(255,255,255,.95);
+}
 .hl-card:hover::before { transform: scaleX(1); }
 .hl-icon { font-size: 2.6rem; display: block; margin-bottom: 18px; transition: transform 0.4s var(--ease); }
 .hl-card:hover .hl-icon { transform: scale(1.18) translateY(-3px); }
@@ -720,10 +733,15 @@ label, .nav-link, .mobile-nav-link, .events-tab { font-weight: 500; }
 .qn-card span   { color: var(--tx3); font-size: 0.82rem; line-height: 1.55; }
 
 /* ── 14. PAGE HERO (inner pages) ─────────────────────────── */
+/*
+  .page-wrapper already adds padding-top: var(--nav-h) = 84px to clear the fixed nav.
+  .page-hero must NOT repeat var(--nav-h) — that was causing 132px of dead space above titles.
+  Correct top padding here is just enough breathing room after the nav clears.
+*/
 .page-hero {
   position: relative;
   background: var(--g-dark);
-  padding: calc(var(--nav-h) + 48px) 24px 64px;
+  padding: 44px 24px 56px;
   overflow: hidden;
   text-align: center;
 }
@@ -869,22 +887,33 @@ label, .nav-link, .mobile-nav-link, .events-tab { font-weight: 500; }
   gap: 24px;
 }
 .committee-card {
-  background: rgba(255,255,255,.78);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  border: 1px solid rgba(255,255,255,.65);
+  /* Frosted glass: gradient bg + inset highlight + blur */
+  background: linear-gradient(145deg, rgba(255,255,255,.88) 0%, rgba(240,235,255,.68) 100%);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border: 1px solid rgba(255,255,255,.92);
   border-radius: var(--r-xl);
   padding: 36px 28px;
   display: flex;
   flex-direction: column;
   gap: 16px;
-  box-shadow: var(--sh-card);
+  box-shadow:
+    0 4px 28px rgba(67,45,97,.1),
+    inset 0 1px 0 rgba(255,255,255,.95),
+    inset 0 0 0 0.5px rgba(255,255,255,.55);
   transition: transform var(--t) var(--ease), box-shadow var(--t) var(--ease), border-color var(--t) var(--ease), background var(--t);
   position: relative;
   overflow: hidden;
   will-change: transform, box-shadow;
 }
-.committee-card:hover { background: rgba(255,255,255,.92); }
+.committee-card:hover {
+  background: linear-gradient(145deg, rgba(255,255,255,.97) 0%, rgba(240,235,255,.88) 100%);
+  border-color: rgba(255,255,255,.98);
+  box-shadow:
+    0 16px 44px rgba(67,45,97,.14),
+    0 0 32px rgba(63,164,211,.13),
+    inset 0 1px 0 rgba(255,255,255,.98);
+}
 .committee-card::after {
   content: '';
   position: absolute;
@@ -952,18 +981,28 @@ label, .nav-link, .mobile-nav-link, .events-tab { font-weight: 500; }
   gap: 28px;
 }
 .event-card {
-  background: rgba(255,255,255,.82);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border: 1px solid rgba(255,255,255,.7);
+  /* Frosted glass card */
+  background: linear-gradient(160deg, rgba(255,255,255,.9) 0%, rgba(244,240,255,.72) 100%);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(255,255,255,.88);
   border-radius: var(--r-xl);
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  box-shadow: var(--sh-card);
+  box-shadow:
+    0 4px 24px rgba(67,45,97,.08),
+    inset 0 1px 0 rgba(255,255,255,.9);
   transition: transform var(--t) var(--ease), box-shadow var(--t) var(--ease), border-color var(--t) var(--ease), background var(--t);
 }
-.event-card:hover { background: rgba(255,255,255,.95); }
+.event-card:hover {
+  background: linear-gradient(160deg, rgba(255,255,255,.97) 0%, rgba(244,240,255,.9) 100%);
+  border-color: rgba(255,255,255,.95);
+  box-shadow:
+    0 14px 40px rgba(67,45,97,.13),
+    0 0 28px rgba(63,164,211,.11),
+    inset 0 1px 0 rgba(255,255,255,.95);
+}
 .event-card:hover { transform: translateY(-6px); box-shadow: var(--sh-card-hover); border-color: rgba(67,45,97,.12); }
 .event-card--featured {
   border-color: var(--a);
@@ -1046,10 +1085,10 @@ label, .nav-link, .mobile-nav-link, .events-tab { font-weight: 500; }
   animation: fadeIn 0.25s ease;
 }
 .modal {
-  background: rgba(255,255,255,.94);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255,255,255,.8);
+  background: linear-gradient(160deg, rgba(255,255,255,.96) 0%, rgba(247,244,251,.88) 100%);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255,255,255,.92);
   border-radius: var(--r-xl);
   padding: 36px;
   width: 100%;
@@ -1057,7 +1096,9 @@ label, .nav-link, .mobile-nav-link, .events-tab { font-weight: 500; }
   max-height: 90vh;
   overflow-y: auto;
   position: relative;
-  box-shadow: var(--sh-xl);
+  box-shadow:
+    0 24px 64px rgba(14,10,22,.45),
+    inset 0 1px 0 rgba(255,255,255,.95);
   animation: slideUp 0.35s var(--ease);
 }
 .modal-close {
@@ -1249,13 +1290,15 @@ textarea.form-input { resize: vertical; min-height: 80px; }
 .admin-tab--active { background: var(--g-brand); color: white; box-shadow: 0 2px 10px rgba(67,45,97,.3); }
 
 .admin-list-panel, .admin-form-panel, .admin-tasks-panel {
-  background: rgba(255,255,255,.9);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255,255,255,.75);
+  background: linear-gradient(145deg, rgba(255,255,255,.92) 0%, rgba(247,244,251,.8) 100%);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255,255,255,.88);
   border-radius: var(--r-xl);
   padding: 32px;
-  box-shadow: var(--sh-card);
+  box-shadow:
+    0 4px 28px rgba(67,45,97,.09),
+    inset 0 1px 0 rgba(255,255,255,.95);
 }
 
 .admin-list-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
@@ -1578,7 +1621,7 @@ textarea.form-input { resize: vertical; min-height: 80px; }
   .next-event-chip { flex-direction: column; align-items: flex-start; gap: 8px; width: 100%; box-sizing: border-box; }
 
   /* ── Page hero (inner pages) ── */
-  .page-hero { padding: calc(var(--nav-h) + 28px) 20px 44px; }
+  .page-hero { padding: 32px 20px 44px; }
 
   /* ── Grids ── */
   .highlights-grid, .quick-nav-grid, .committees-grid, .about-pillars { grid-template-columns: 1fr; }
@@ -1652,7 +1695,7 @@ textarea.form-input { resize: vertical; min-height: 80px; }
   .hero-badge { font-size: 0.78rem; padding: 7px 14px; }
 
   /* ── Page hero ── */
-  .page-hero { padding: calc(var(--nav-h) + 22px) 16px 38px; }
+  .page-hero { padding: 26px 16px 34px; }
   .page-hero-title { font-size: clamp(1.8rem, 8vw, 2.6rem); }
   .section-title::after { width: 22px; height: 2px; margin: 6px auto 9px; }
 
