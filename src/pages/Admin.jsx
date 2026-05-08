@@ -191,12 +191,13 @@ function EventsTab({ data, update, toast }) {
     location: '', image: null, formLink: '',
     hasCertificate: false, certificateTemplate: null,
     nameX: 50, nameY: 55, nameFontSize: 52, nameColor: '#ffffff',
+    registrationStatus: 'open', registrationDeadline: '',
   });
 
   const [form, setForm] = useState(blankEvent());
 
   const openNew  = ()    => { setForm(blankEvent()); setEditing('new'); setView('form'); };
-  const openEdit = (ev)  => { setForm({ nameColor: '#ffffff', ...ev }); setEditing(ev.id); setView('form'); };
+  const openEdit = (ev)  => { setForm({ nameColor: '#ffffff', registrationStatus: 'open', registrationDeadline: '', ...ev }); setEditing(ev.id); setView('form'); };
   const openPart = async (ev) => {
     let target = ev;
 
@@ -324,6 +325,22 @@ function EventsTab({ data, update, toast }) {
           <div className="form-group form-full">
             <label className="form-label">رابط Google Form (التسجيل)</label>
             <input className="form-input" type="url" value={form.formLink} onChange={f('formLink')} placeholder="https://forms.google.com/…" />
+          </div>
+          <div className="form-group">
+            <label className="form-label">حالة التسجيل</label>
+            <select className="form-input" value={form.registrationStatus || 'open'} onChange={f('registrationStatus')}>
+              <option value="open">التسجيل مفتوح</option>
+              <option value="closed">التسجيل مغلق</option>
+            </select>
+          </div>
+          <div className="form-group">
+            <label className="form-label">آخر موعد للتسجيل (اختياري)</label>
+            <input
+              className="form-input"
+              type="datetime-local"
+              value={form.registrationDeadline ? String(form.registrationDeadline).slice(0, 16) : ''}
+              onChange={f('registrationDeadline')}
+            />
           </div>
 
           {/* Image */}

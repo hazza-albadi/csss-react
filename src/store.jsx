@@ -26,9 +26,8 @@ const DEFAULT_EVENTS = [
     formLink: 'https://forms.google.com',
     hasCertificate: true,
     certificateTemplate: null,
-    nameX: 50,
-    nameY: 55,
-    nameFontSize: 52,
+    nameX: 50, nameY: 55, nameFontSize: 52,
+    registrationStatus: 'open', registrationDeadline: null,
   },
   {
     id: 'evt-002',
@@ -42,9 +41,8 @@ const DEFAULT_EVENTS = [
     formLink: 'https://forms.google.com',
     hasCertificate: false,
     certificateTemplate: null,
-    nameX: 50,
-    nameY: 55,
-    nameFontSize: 52,
+    nameX: 50, nameY: 55, nameFontSize: 52,
+    registrationStatus: 'open', registrationDeadline: null,
   },
   {
     id: 'evt-003',
@@ -58,9 +56,8 @@ const DEFAULT_EVENTS = [
     formLink: 'https://forms.google.com',
     hasCertificate: true,
     certificateTemplate: null,
-    nameX: 50,
-    nameY: 55,
-    nameFontSize: 52,
+    nameX: 50, nameY: 55, nameFontSize: 52,
+    registrationStatus: 'open', registrationDeadline: null,
   },
   {
     id: 'evt-004',
@@ -74,9 +71,8 @@ const DEFAULT_EVENTS = [
     formLink: 'https://forms.google.com',
     hasCertificate: false,
     certificateTemplate: null,
-    nameX: 50,
-    nameY: 55,
-    nameFontSize: 52,
+    nameX: 50, nameY: 55, nameFontSize: 52,
+    registrationStatus: 'open', registrationDeadline: null,
   },
 ];
 
@@ -275,6 +271,19 @@ export function useStore() {
 
 export function isUpcoming(event) {
   return new Date(event.date + 'T' + (event.time || '00:00')) >= new Date();
+}
+
+/**
+ * Returns true when registration should be shown as open.
+ * Rules (in priority order):
+ *   1. Manual 'closed' status always overrides everything.
+ *   2. If a deadline is set and has passed → closed.
+ *   3. Otherwise → open (including when status is unset / legacy events).
+ */
+export function isRegistrationOpen(event) {
+  if (event.registrationStatus === 'closed') return false;
+  if (event.registrationDeadline && new Date() > new Date(event.registrationDeadline)) return false;
+  return true;
 }
 
 export function nextEvent(events) {

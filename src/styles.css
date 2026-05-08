@@ -1001,6 +1001,44 @@ label, .nav-link, .mobile-nav-link, .events-tab { font-weight: 500; }
 .cert-canvas { width: 100%; height: auto; display: block; }
 .modal-actions { display: flex; gap: 12px; }
 
+/* ── Event detail modal ── */
+.modal--detail { max-width: 680px; }
+.event-detail-img-wrap { margin: 0 0 20px; border-radius: var(--r-lg); overflow: hidden; }
+.event-detail-img { width: 100%; max-height: 260px; object-fit: cover; display: block; }
+.event-detail-title { font-size: 1.5rem; font-weight: 700; color: var(--p); margin-bottom: 10px; }
+.event-detail-meta {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 16px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 20px;
+  font-size: 0.88rem;
+  color: var(--tx2);
+}
+.event-detail-desc {
+  font-size: 0.95rem;
+  line-height: 1.75;
+  color: var(--tx);
+  margin-bottom: 24px;
+  white-space: pre-wrap;
+}
+
+/* ── Registration status badges ── */
+.reg-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 12px;
+  border-radius: var(--r-f);
+  font-size: 0.75rem;
+  font-weight: 600;
+  margin-bottom: 10px;
+}
+.reg-badge--open    { background: rgba(16,185,129,.12); color: #065f46; border: 1px solid rgba(16,185,129,.25); }
+.reg-badge--closed  { background: rgba(239,68,68,.10);  color: #b91c1c; border: 1px solid rgba(239,68,68,.20); }
+.reg-badge--expired { background: rgba(245,158,11,.10); color: #92400e; border: 1px solid rgba(245,158,11,.20); }
+
 /* ── 19. FORM ELEMENTS ───────────────────────────────────── */
 .form-group { margin-bottom: 18px; }
 .form-label { display: block; font-size: 0.86rem; font-weight: 600; color: var(--tx); margin-bottom: 7px; }
