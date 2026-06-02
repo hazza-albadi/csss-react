@@ -1,146 +1,193 @@
-# جماعة الأنشطة الطلابية — CSSS Platform v2
+# CSSS Platform v2
 
-Premium React platform for the College of Science Student Society at Sultan Qaboos University.
+React + Vite platform for the College of Science Student Society at Sultan Qaboos University.
 
----
+## Overview
 
-## Quick Start
+This project is a single-page React application with:
+
+- Public pages for `Home`, `About`, `Events`, and `Join`
+- An admin page at `/admin`
+- Local data persistence via `localStorage` by default
+- Optional Supabase integration when environment variables are configured
+- Certificate participant import support for `.csv`, `.xlsx`, and `.xls`
+
+## Tech Stack
+
+- React 18
+- Vite 5
+- JavaScript (ES modules, JSX)
+- Plain CSS (`src/styles.css`)
+- Supabase JavaScript client
+- `xlsx` for spreadsheet parsing
+
+## Requirements
+
+- Node.js 18+ recommended
+- npm
+
+## Getting Started
+
+### 1. Install dependencies
 
 ```bash
-cd csss-react
 npm install
+```
+
+### 2. Run locally
+
+```bash
 npm run dev
-# Open: http://localhost:5173
 ```
 
-Build for deployment:
+Vite will start a local development server. By default, it is typically available at:
+
+```text
+http://localhost:5173
+```
+
+### 3. Build for production
+
 ```bash
 npm run build
-# Deploy the dist/ folder anywhere
 ```
 
----
+The production build is generated in `dist/`.
 
-## Project Structure
+### 4. Preview the production build
 
-```
-csss-react/
-├── index.html
-├── package.json
-├── vite.config.js
-├── assets/
-│   └── logo.png          ← DROP YOUR LOGO HERE
-└── src/
-    ├── main.jsx
-    ├── App.jsx            # Router + page transitions
-    ├── store.js           # All data + localStorage
-    ├── styles.css         # Complete design system
-    ├── utils/
-    │   ├── certificate.js # Canvas cert renderer
-    │   └── helpers.js     # Date formatting
-    ├── components/
-    │   ├── LoadingScreen.jsx
-    │   ├── Mascot.jsx     # Animated orb with eye tracking
-    │   ├── Nav.jsx
-    │   ├── Footer.jsx
-    │   └── CertificateModal.jsx
-    └── pages/
-        ├── Home.jsx       # Cinematic hero + parallax
-        ├── About.jsx      # Goal / Mission / Impact
-        ├── Join.jsx       # All 5 committees
-        ├── Events.jsx     # Upcoming + past + cert modal
-        └── Admin.jsx      # Full admin panel (4 tabs)
-```
-
----
-
-## Admin Panel
-
-Navigate to `#admin` in the browser (click "الإدارة" in nav).
-
-| | |
-|---|---|
-| **Password** | `csss@2025` |
-| **Change password** | `src/store.js` → line 5: `ADMIN_PASSWORD` |
-
-### Admin Tabs
-
-| Tab | What you can do |
-|---|---|
-| **الفعاليات** | Add / edit / delete events, upload images, toggle certificate, upload cert template, set name position |
-| **اللجان** | Edit committee descriptions and Google Form links |
-| **المحتوى** | Edit hero slogan, about page text, email, Instagram |
-| **إدارة المهام** | Notion-style task table — add/edit/delete tasks with status, deadline, committee |
-
----
-
-## Logo Replacement
-
-Three places to update:
-
-1. **`index.html`** — favicon `<link rel="icon" href="./assets/logo.png">`
-2. **`src/components/Nav.jsx`** — find `{/* LOGO REPLACEMENT */}` comment, replace `<div className="nav-logo-svg">...</div>` with `<img src="./assets/logo.png" alt="شعار الجمعية" className="nav-logo-img" />`
-3. **`src/components/Footer.jsx`** — find `{/* LOGO REPLACEMENT (footer) */}` comment, replace SVG with `<img>` tag
-
----
-
-## Brand Colors
-
-Edit CSS variables at top of `src/styles.css`:
-
-```css
---p:  #432D61;  /* Primary purple  */
---a:  #3FA4D3;  /* Accent blue     */
---mu: #BBB0B6;  /* Muted gray      */
---li: #E9E9E9;  /* Light gray      */
-```
-
----
-
-## Google Forms
-
-Update form links:
-- **Events**: Admin → الفعاليات → edit event → "رابط Google Form"
-- **Committees**: Admin → اللجان → update link per committee
-
----
-
-## Certificate System
-
-Each event has a "Has Certificate" toggle (Admin → الفعاليات → edit).
-
-When enabled:
-- Event card shows "🎓 الشهادة" button
-- Modal opens with name input + live canvas preview
-- Download PNG or export PDF (browser print)
-
-Upload a custom template: Admin → edit event → "قالب الشهادة"
-If no template, a premium auto-generated design is used.
-
----
-
-## Deployment
-
-**Netlify (easiest):**
-1. `npm run build`
-2. Drag `dist/` folder to netlify.com
-
-**GitHub Pages:**
 ```bash
-npm run build
-# Push dist/ to gh-pages branch or use GitHub Actions
+npm run preview
 ```
 
-**Any static host:** Upload contents of `dist/`
+## Available Scripts
 
----
+| Script | Description |
+|---|---|
+| `npm run dev` | Start the Vite development server |
+| `npm run build` | Create a production build |
+| `npm run preview` | Preview the production build locally |
+| `npm run vercel-build` | Production build command used for Vercel |
+
+## Environment Variables
+
+Supabase is optional. If the variables below are not set, the app falls back to `localStorage`.
+
+Create a `.env.local` file in the project root with:
+
+```env
+VITE_SUPABASE_URL=your_supabase_project_url
+VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+```
+
+Relevant implementation:
+
+- `src/lib/supabase.js`
+- `src/lib/db.js`
 
 ## Data Storage
 
-All data lives in `localStorage` (key: `csss_v2`).
+By default, the app stores its state in browser `localStorage` using the key:
 
-To migrate to a real backend (Firebase/Supabase), replace the `getData`/`persist` functions in `src/store.js` — all components use the same `useStore()` hook, so nothing else changes.
+```text
+csss_v2
+```
 
----
+When Supabase is configured, the app can read and write remote data through the shared data layer in `src/lib/db.js`.
 
-*جماعة الأنشطة الطلابية بكلية العلوم — جامعة السلطان قابوس*
+## Routing
+
+This project uses a custom client-side pathname router in `src/App.jsx`, not `react-router`.
+
+Current routes:
+
+- `/`
+- `/about`
+- `/events`
+- `/join`
+- `/admin`
+
+For deployment, `vercel.json` is configured to rewrite unknown routes to `index.html` so these paths work as an SPA.
+
+## Admin Notes
+
+- The admin page lives at `/admin`
+- The admin password is defined in `src/store.jsx` as `ADMIN_PASSWORD`
+- Default content, events, committees, tasks, achievements, and stats are also seeded from `src/store.jsx`
+
+## Project Structure
+
+```text
+csss-react/
+├── index.html
+├── package.json
+├── package-lock.json
+├── vite.config.js
+├── vercel.json
+├── public/
+├── src/
+│   ├── App.jsx
+│   ├── main.jsx
+│   ├── store.jsx
+│   ├── styles.css
+│   ├── assets/
+│   │   └── society-logo.png
+│   ├── components/
+│   │   ├── CertificateModal.jsx
+│   │   ├── Footer.jsx
+│   │   ├── LoadingScreen.jsx
+│   │   ├── Mascot.jsx
+│   │   └── Nav.jsx
+│   ├── lib/
+│   │   ├── db.js
+│   │   └── supabase.js
+│   ├── pages/
+│   │   ├── About.jsx
+│   │   ├── Admin.jsx
+│   │   ├── Events.jsx
+│   │   ├── Home.jsx
+│   │   └── Join.jsx
+│   └── utils/
+│       ├── certificate.js
+│       └── helpers.js
+└── README.md
+```
+
+## Certificates and Participant Imports
+
+The certificate flow includes:
+
+- Certificate rendering utilities in `src/utils/certificate.js`
+- Certificate modal UI in `src/components/CertificateModal.jsx`
+- Spreadsheet and CSV parsing in `src/lib/db.js`
+
+Supported participant import formats:
+
+- `.csv`
+- `.xlsx`
+- `.xls`
+
+## Deployment
+
+This is a Vite SPA and can be deployed to any static host that supports SPA fallback routing.
+
+Examples:
+
+- Vercel
+- Netlify
+- GitHub Pages
+- Any static host serving the `dist/` directory
+
+Basic deployment flow:
+
+```bash
+npm run build
+```
+
+Then deploy the generated `dist/` folder.
+
+## Notes
+
+- Styling is centralized in `src/styles.css`
+- The project currently uses plain React state/context via `src/store.jsx`
+- Supabase support is optional and gracefully disabled when env vars are missing

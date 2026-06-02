@@ -27,7 +27,7 @@ export default function Events() {
   return (
     <div className="page-wrapper">
       {/* ── Page Hero ── */}
-      <section className="page-hero">
+      <section className="page-hero page-hero--compact page-hero--events">
         <div className="blob blob-1 blob-sm" /><div className="blob blob-2 blob-sm" />
         <div className="container text-center">
           <h1 className="page-hero-title reveal">الفعاليات</h1>
@@ -35,7 +35,7 @@ export default function Events() {
         </div>
       </section>
 
-      <section className="section">
+      <section className="section section--events-list">
         <div className="container">
           {/* Tabs */}
           <div className="events-tabs reveal">

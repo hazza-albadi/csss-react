@@ -48,7 +48,7 @@ export default function Join() {
   return (
     <div className="page-wrapper">
       {/* ── Page Hero ── */}
-      <section className="page-hero">
+      <section className="page-hero page-hero--compact">
         <div className="blob blob-1 blob-sm" /><div className="blob blob-2 blob-sm" />
         <div className="container text-center">
           <h1 className="page-hero-title reveal">انضم إلينا</h1>
@@ -59,7 +59,7 @@ export default function Join() {
       </section>
 
       {/* ── Steps ── */}
-      <section className="section">
+      <section className="section section--join-steps">
         <div className="container">
           <div className="join-steps reveal">
             {[
@@ -79,7 +79,7 @@ export default function Join() {
       </section>
 
       {/* ── Committee cards ── */}
-      <section className="section section-tinted">
+      <section className="section section-tinted section--join-committees">
         <div className="container">
           <div className="committees-grid">
             {data.committees.map((c, i) => (

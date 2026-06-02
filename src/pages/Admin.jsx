@@ -34,6 +34,8 @@ export default function Admin() {
   const [pass,    setPass]    = useState('');
   const [err,     setErr]     = useState('');
   const [loading, setLoading] = useState(false);
+  const [passwordVisible, setPasswordVisible] = useState(false);
+  const [adminRole, setAdminRole] = useState(null);
 
   /* ── Check session on mount + subscribe to auth changes ── */
   useEffect(() => {
@@ -42,12 +44,36 @@ export default function Admin() {
       return;
     }
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session ?? null);
+    const checkAdmin = async (currentSession) => {
+      if (!currentSession) {
+        setSession(null);
+        setAdminRole(null);
+        return;
+      }
+      
+      const { data, error } = await supabase
+        .from('admins')
+        .select('role, active')
+        .eq('email', currentSession.user.email)
+        .single();
+
+      if (error || !data || !data.active) {
+        await supabase.auth.signOut();
+        setErr('تم رفض الوصول: حسابك غير مسجل كمسؤول أو غير نشط');
+        setSession(null);
+        setAdminRole(null);
+      } else {
+        setAdminRole(data.role);
+        setSession(currentSession);
+      }
+    };
+
+    supabase.auth.getSession().then(({ data: { session: initialSession } }) => {
+      checkAdmin(initialSession);
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session ?? null);
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, currentSession) => {
+      checkAdmin(currentSession);
     });
 
     return () => subscription.unsubscribe();
@@ -62,8 +88,22 @@ export default function Admin() {
     if (error) {
       setErr(error.status === 400 ? 'بيانات الدخول غير صحيحة' : 'حدث خطأ في تسجيل الدخول');
     }
-    // On success, onAuthStateChange fires → setSession → re-render to dashboard
+    // On success, onAuthStateChange fires → checkAdmin → re-render to dashboard
     setLoading(false);
+  };
+
+  const handleGoogleLogin = async () => {
+    if (!supabase) { setErr('حدث خطأ في الاتصال بقاعدة البيانات'); return; }
+    setLoading(true);
+    setErr('');
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo: window.location.origin + '/admin' }
+    });
+    if (error) {
+      setErr('حدث خطأ أثناء تسجيل الدخول عبر Google');
+      setLoading(false);
+    }
   };
 
   const handleLogout = async () => {
@@ -103,15 +143,24 @@ export default function Admin() {
                 required
               />
             </div>
-            <div className="form-group" style={{ marginTop: 12 }}>
+            <div className="form-group password-group" style={{ marginTop: 12 }}>
               <input
                 className={`form-input${err ? ' form-input--error' : ''}`}
-                type="password"
+                type={passwordVisible ? 'text' : 'password'}
                 value={pass}
                 onChange={(e) => { setPass(e.target.value); setErr(''); }}
                 placeholder="كلمة المرور"
+                dir="ltr"
                 required
               />
+              <button
+                type="button"
+                className="password-toggle"
+                onClick={() => setPasswordVisible(!passwordVisible)}
+                aria-label={passwordVisible ? "Hide password" : "Show password"}
+              >
+                {passwordVisible ? '🙈' : '👁️'}
+              </button>
             </div>
             {err && <p className="admin-error">{err}</p>}
             <button
@@ -123,20 +172,46 @@ export default function Admin() {
               {loading ? 'جارٍ تسجيل الدخول…' : 'دخول'}
             </button>
           </form>
+
+          <div style={{ marginTop: 24, marginBottom: 12, display: 'flex', alignItems: 'center', color: 'var(--mu)', fontSize: '0.85rem' }}>
+            <div style={{ flex: 1, height: 1, background: 'var(--li)' }} />
+            <span style={{ padding: '0 12px' }}>أو</span>
+            <div style={{ flex: 1, height: 1, background: 'var(--li)' }} />
+          </div>
+
+          <button
+            className="btn btn-full"
+            style={{ border: '1px solid var(--li)', background: 'white', color: 'var(--tx)', gap: 8 }}
+            onClick={handleGoogleLogin}
+            disabled={loading}
+          >
+            <svg viewBox="0 0 24 24" width="18" height="18" xmlns="http://www.w3.org/2000/svg">
+              <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+              <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+              <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+              <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+            </svg>
+            المتابعة باستخدام Google
+          </button>
         </div>
       </div>
     );
   }
 
   /* ── Logged in → show dashboard ── */
-  return <AdminDashboard onLogout={handleLogout} />;
+  return <AdminDashboard onLogout={handleLogout} adminRole={adminRole} />;
 }
 
 /* ── Dashboard shell ── */
-function AdminDashboard({ onLogout }) {
+function AdminDashboard({ onLogout, adminRole }) {
   const [tab, setTab] = useState('events');
   const { data, update } = useStore();
   const toast = useToast();
+
+  const tabsToRender = [...TABS];
+  if (adminRole === 'super_admin') {
+    tabsToRender.push({ id: 'admins', label: 'إدارة المشرفين' });
+  }
 
   return (
     <div className="admin-page">
@@ -153,7 +228,7 @@ function AdminDashboard({ onLogout }) {
         </div>
 
         <div className="admin-tabs">
-          {TABS.map((t) => (
+          {tabsToRender.map((t) => (
             <button
               key={t.id}
               className={`admin-tab${tab === t.id ? ' admin-tab--active' : ''}`}
@@ -169,6 +244,7 @@ function AdminDashboard({ onLogout }) {
         {tab === 'content'      && <ContentTab       data={data} update={update} toast={toast} />}
         {tab === 'achievements' && <AchievementsTab  data={data} update={update} toast={toast} />}
         {tab === 'tasks'        && <TasksTab         data={data} update={update} toast={toast} />}
+        {tab === 'admins'       && adminRole === 'super_admin' && <AdminManagementTab toast={toast} />}
       </div>
 
       {toast.msg && (
@@ -1017,4 +1093,113 @@ function useToast() {
     timerRef.current = setTimeout(() => setState({ msg: null, type: 'success' }), 3000);
   };
   return { msg: state.msg, type: state.type, show };
+}
+
+/* ══ ADMIN MANAGEMENT TAB ════════════════════════════════════ */
+function AdminManagementTab({ toast }) {
+  const [admins, setAdmins] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [form, setForm] = useState({ fullName: '', email: '', isSenior: false });
+  const [saving, setSaving] = useState(false);
+
+  const loadAdmins = async () => {
+    if (!supabase) return;
+    setLoading(true);
+    const { data, error } = await supabase.from('admins').select('*').order('created_at', { ascending: false });
+    if (!error && data) setAdmins(data);
+    setLoading(false);
+  };
+
+  useEffect(() => { loadAdmins(); }, []);
+
+  const handleAdd = async (e) => {
+    e.preventDefault();
+    if (!supabase) return;
+    setSaving(true);
+    const role = form.isSenior ? 'super_admin' : 'admin';
+    const { error } = await supabase.from('admins').insert({
+      email: form.email.trim().toLowerCase(),
+      full_name: form.fullName.trim(),
+      role: role,
+      active: true
+    });
+    
+    if (error) {
+      toast.show(error.code === '23505' ? 'البريد الإلكتروني مسجل مسبقاً' : 'حدث خطأ أثناء إضافة المشرف', 'error');
+    } else {
+      toast.show('تمت إضافة المشرف بنجاح', 'success');
+      setForm({ fullName: '', email: '', isSenior: false });
+      loadAdmins();
+    }
+    setSaving(false);
+  };
+
+  if (loading) return <div className="admin-loading"><div className="spinner" /></div>;
+
+  return (
+    <div className="tab-pane fade-in">
+      <div className="section-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        <div>
+          <h2 className="section-title">إدارة المشرفين</h2>
+          <p className="text-muted">إضافة وحسابات المشرفين، وتعيين صلاحياتهم.</p>
+        </div>
+      </div>
+
+      <div className="card" style={{ marginBottom: 32 }}>
+        <h3>إضافة مشرف جديد</h3>
+        <form onSubmit={handleAdd} style={{ display: 'flex', flexWrap: 'wrap', gap: 16, alignItems: 'end', marginTop: 16 }}>
+          <div className="form-group" style={{ flex: '1 1 200px' }}>
+            <label>الاسم الكامل</label>
+            <input className="form-input" required value={form.fullName} onChange={e => setForm({...form, fullName: e.target.value})} placeholder="الاسم" />
+          </div>
+          <div className="form-group" style={{ flex: '1 1 200px' }}>
+            <label>البريد الإلكتروني</label>
+            <input className="form-input" type="email" required value={form.email} onChange={e => setForm({...form, email: e.target.value})} placeholder="example@gmail.com" dir="ltr" />
+          </div>
+          <div className="form-group" style={{ display: 'flex', alignItems: 'center', gap: 8, paddingBottom: 12, flex: '1 1 200px' }}>
+            <input type="checkbox" id="chk-senior" checked={form.isSenior} onChange={e => setForm({...form, isSenior: e.target.checked})} />
+            <label htmlFor="chk-senior" style={{ margin: 0, cursor: 'pointer' }}>إدارة عليا (Super Admin)</label>
+          </div>
+          <button type="submit" className="btn btn-primary" disabled={saving} style={{ flexBasis: '100%' }}>
+            {saving ? 'جارٍ الإضافة...' : 'إضافة مشرف'}
+          </button>
+        </form>
+      </div>
+
+      <div className="card">
+        <h3>المشرفون الحاليون</h3>
+        <div style={{ overflowX: 'auto', marginTop: 16 }}>
+          <table style={{ width: '100%', textAlign: 'right', borderCollapse: 'collapse' }}>
+            <thead>
+              <tr style={{ borderBottom: '1px solid var(--li)' }}>
+                <th style={{ padding: 12 }}>الاسم</th>
+                <th style={{ padding: 12 }}>البريد الإلكتروني</th>
+                <th style={{ padding: 12 }}>الصلاحية</th>
+                <th style={{ padding: 12 }}>الحالة</th>
+              </tr>
+            </thead>
+            <tbody>
+              {admins.map(a => (
+                <tr key={a.id} style={{ borderBottom: '1px solid var(--li)' }}>
+                  <td style={{ padding: 12 }}>{a.full_name}</td>
+                  <td style={{ padding: 12 }} dir="ltr" align="right">{a.email}</td>
+                  <td style={{ padding: 12 }}>
+                    <span className={`badge ${a.role === 'super_admin' ? 'badge-primary' : 'badge-muted'}`} style={{ fontSize: '0.75rem' }}>
+                      {a.role === 'super_admin' ? 'إدارة عليا' : 'مشرف'}
+                    </span>
+                  </td>
+                  <td style={{ padding: 12 }}>
+                    <span className={`status-badge ${a.active ? 'status-dn' : 'status-ns'}`} style={{ fontSize: '0.75rem' }}>
+                      {a.active ? 'نشط' : 'معطل'}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+              {admins.length === 0 && <tr><td colSpan="4" style={{ padding: 24, textAlign: 'center', color: 'var(--mu)' }}>لا يوجد مشرفين</td></tr>}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
 }

@@ -49,7 +49,7 @@ export default function About() {
   return (
     <div className="page-wrapper">
       {/* ── Page Hero ── */}
-      <section className="page-hero">
+      <section className="page-hero page-hero--compact">
         <div className="blob blob-1 blob-sm" /><div className="blob blob-2 blob-sm" />
         <div className="container text-center">
           <h1 className="page-hero-title reveal">عن الجماعة</h1>
@@ -60,7 +60,7 @@ export default function About() {
       </section>
 
       {/* ── Intro ── */}
-      <section className="section">
+      <section className="section section--about-intro">
         <div className="container">
           <div className="about-intro reveal">
             <p>
@@ -73,7 +73,7 @@ export default function About() {
       </section>
 
       {/* ── Three pillars ── */}
-      <section className="section section-tinted">
+      <section className="section section-tinted section--about-pillars">
         <div className="container">
           <div className="about-pillars">
             {sections.map(({ num, key, label, text, icon }, i) => (
@@ -93,7 +93,7 @@ export default function About() {
       </section>
 
       {/* ── Values ── */}
-      <section className="section">
+      <section className="section section--about-values">
         <div className="container">
           <div className="section-header reveal">
             <h2 className="section-title">قيمنا</h2>

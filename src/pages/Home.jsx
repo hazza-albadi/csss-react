@@ -41,11 +41,6 @@ export default function Home({ navigate }) {
         <div className="blob blob-1" /><div className="blob blob-2" /><div className="blob blob-3" />
 
         <div className="hero-content" ref={heroRef}>
-          <span className="hero-badge">
-            <span className="badge-pulse" />
-            جماعة الأنشطة الطلابية — كلية العلوم
-          </span>
-
           <h1 className="hero-title">
             {sloganLines.map((line, i) => (
               <span key={i} className="hero-line" style={{ animationDelay: `${0.2 + i * 0.18}s` }}>
