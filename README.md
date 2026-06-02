@@ -112,7 +112,9 @@ For deployment, `vercel.json` is configured to rewrite unknown routes to `index.
 ## Admin Notes
 
 - The admin page lives at `/admin`
-- The admin password is defined in `src/store.jsx` as `ADMIN_PASSWORD`
+- Admin access uses Supabase Auth and the `admins` table
+- Google login requires the Google provider to be enabled in the Supabase dashboard
+- Run the SQL in `supabase-admins-setup.sql` to create the `admins` table and RLS policies
 - Default content, events, committees, tasks, achievements, and stats are also seeded from `src/store.jsx`
 
 ## Project Structure

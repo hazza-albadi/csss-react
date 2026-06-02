@@ -12,7 +12,7 @@ import {
 
 /* ════════════════════════════════════════════════════════════
    ADMIN PANEL
-   Password: csss@2025  (change in src/store.jsx → ADMIN_PASSWORD)
+   Supabase Auth + admins table authorization
    ════════════════════════════════════════════════════════════ */
 
 const TABS = [
@@ -26,6 +26,7 @@ const TABS = [
 const STATUS_LABELS = { 'not-started': 'لم يبدأ', 'in-progress': 'جارٍ', 'done': 'مكتمل' };
 const STATUS_COLORS = { 'not-started': 'status-ns', 'in-progress': 'status-ip', 'done': 'status-dn' };
 const COM_SECTIONS  = ['المشاريع', 'الإعلام', 'العلاقات', 'التنظيم', 'المالية'];
+const normalizeEmail = (value) => value.trim().toLowerCase();
 
 export default function Admin() {
   // undefined = still loading session, null = no session, object = active session
@@ -51,10 +52,11 @@ export default function Admin() {
         return;
       }
       
+      const userEmail = normalizeEmail(currentSession.user.email || '');
       const { data, error } = await supabase
         .from('admins')
         .select('role, active')
-        .eq('email', currentSession.user.email)
+        .eq('email', userEmail)
         .single();
 
       if (error || !data || !data.active) {
@@ -84,7 +86,7 @@ export default function Admin() {
     if (!supabase) { setErr('حدث خطأ في تسجيل الدخول'); return; }
     setLoading(true);
     setErr('');
-    const { error } = await supabase.auth.signInWithPassword({ email, password: pass });
+    const { error } = await supabase.auth.signInWithPassword({ email: normalizeEmail(email), password: pass });
     if (error) {
       setErr(error.status === 400 ? 'بيانات الدخول غير صحيحة' : 'حدث خطأ في تسجيل الدخول');
     }
@@ -1118,7 +1120,7 @@ function AdminManagementTab({ toast }) {
     setSaving(true);
     const role = form.isSenior ? 'super_admin' : 'admin';
     const { error } = await supabase.from('admins').insert({
-      email: form.email.trim().toLowerCase(),
+      email: normalizeEmail(form.email),
       full_name: form.fullName.trim(),
       role: role,
       active: true
@@ -1132,6 +1134,22 @@ function AdminManagementTab({ toast }) {
       loadAdmins();
     }
     setSaving(false);
+  };
+
+  const toggleActive = async (admin) => {
+    if (!supabase) return;
+    const { error } = await supabase
+      .from('admins')
+      .update({ active: !admin.active })
+      .eq('id', admin.id);
+
+    if (error) {
+      toast.show('حدث خطأ أثناء تحديث حالة المشرف', 'error');
+      return;
+    }
+
+    toast.show(admin.active ? 'تم تعطيل المشرف' : 'تم تفعيل المشرف', 'success');
+    loadAdmins();
   };
 
   if (loading) return <div className="admin-loading"><div className="spinner" /></div>;
@@ -1176,6 +1194,7 @@ function AdminManagementTab({ toast }) {
                 <th style={{ padding: 12 }}>البريد الإلكتروني</th>
                 <th style={{ padding: 12 }}>الصلاحية</th>
                 <th style={{ padding: 12 }}>الحالة</th>
+                <th style={{ padding: 12 }}>الإجراء</th>
               </tr>
             </thead>
             <tbody>
@@ -1193,9 +1212,14 @@ function AdminManagementTab({ toast }) {
                       {a.active ? 'نشط' : 'معطل'}
                     </span>
                   </td>
+                  <td style={{ padding: 12 }}>
+                    <button className="btn btn-ghost btn-sm" onClick={() => toggleActive(a)}>
+                      {a.active ? 'تعطيل' : 'تفعيل'}
+                    </button>
+                  </td>
                 </tr>
               ))}
-              {admins.length === 0 && <tr><td colSpan="4" style={{ padding: 24, textAlign: 'center', color: 'var(--mu)' }}>لا يوجد مشرفين</td></tr>}
+              {admins.length === 0 && <tr><td colSpan="5" style={{ padding: 24, textAlign: 'center', color: 'var(--mu)' }}>لا يوجد مشرفين</td></tr>}
             </tbody>
           </table>
         </div>

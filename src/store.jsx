@@ -4,15 +4,6 @@ import { toLocalEvent, toLocalAchievement, toLocalTask } from './lib/db';
 
 const STORE_KEY = 'csss_v2';
 
-/*
-  To change admin password:
-  1. Update the string below
-  2. Save — no rebuild needed
-*/
-export const ADMIN_PASSWORD = 'csss@2025';
-
-/* ─── Default data ─────────────────────────────────────────── */
-
 const DEFAULT_EVENTS = [
   {
     id: 'evt-001',

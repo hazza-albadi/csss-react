@@ -7,14 +7,7 @@ import societyLogo from '../assets/society-logo.png';
   2. Or update the src path below in the <img> tag
 */
 
-/*
-  To change the admin password:
-  1. Open src/store.jsx
-  2. Find: export const ADMIN_PASSWORD = '...'
-  3. Replace the value with the new password
-*/
-
-/* Admin route intentionally excluded — access via /#admin only */
+/* Admin route intentionally excluded from public navigation. */
 const NAV_ITEMS = [
   { route: 'home',   label: 'الرئيسية'   },
   { route: 'about',  label: 'عن الجماعة' },
