@@ -361,7 +361,7 @@ label, .nav-link, .mobile-nav-link, .events-tab { font-weight: 500; }
   border-bottom: 1px solid rgba(255,255,255,.06);
   transition: background var(--t), box-shadow var(--t);
 }
-.nav--scrolled { background: rgba(14,10,22,.96); box-shadow: 0 2px 24px rgba(0,0,0,.3); }
+.nav--scrolled { background: rgba(14,10,22,.96); }
 
 .nav-inner {
   display: flex;
@@ -1360,7 +1360,7 @@ textarea.form-input { resize: vertical; min-height: 80px; }
 
 .admin-page {
   padding: calc(var(--nav-h) + 32px) 0 80px;
-  background: linear-gradient(to bottom, var(--dark) 0px, var(--dark) var(--nav-h), var(--bg) calc(var(--nav-h) + 80px));
+  background: var(--bg);
   min-height: 100vh;
 }
 .admin-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 28px; }
