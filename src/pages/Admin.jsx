@@ -27,6 +27,7 @@ const STATUS_LABELS = { 'not-started': 'لم يبدأ', 'in-progress': 'جارٍ
 const STATUS_COLORS = { 'not-started': 'status-ns', 'in-progress': 'status-ip', 'done': 'status-dn' };
 const COM_SECTIONS  = ['المشاريع', 'الإعلام', 'العلاقات', 'التنظيم', 'المالية'];
 const normalizeEmail = (value) => value.trim().toLowerCase();
+const DISABLED_ADMIN_MSG = 'Your account has been disabled. Please contact a Super Admin.';
 
 export default function Admin() {
   // undefined = still loading session, null = no session, object = active session
@@ -45,7 +46,7 @@ export default function Admin() {
       return;
     }
 
-    const checkAdmin = async (currentSession) => {
+    const checkAdmin = async (currentSession, { silent = false } = {}) => {
       if (!currentSession) {
         setSession(null);
         setAdminRole(null);
@@ -61,24 +62,66 @@ export default function Admin() {
 
       if (error || !data || !data.active) {
         await supabase.auth.signOut();
-        setErr('تم رفض الوصول: حسابك غير مسجل كمسؤول أو غير نشط');
+        setErr(data && !data.active ? DISABLED_ADMIN_MSG : 'تم رفض الوصول: حسابك غير مسجل كمسؤول أو غير نشط');
         setSession(null);
         setAdminRole(null);
       } else {
         setAdminRole(data.role);
         setSession(currentSession);
+        if (!silent) setErr('');
       }
     };
 
+    let activeSession = null;
+    let intervalId = null;
+
+    const stopPeriodicCheck = () => {
+      if (intervalId) {
+        clearInterval(intervalId);
+        intervalId = null;
+      }
+    };
+
+    const verifyActiveSession = () => {
+      if (activeSession) {
+        checkAdmin(activeSession, { silent: true });
+      }
+    };
+
+    const startPeriodicCheck = (currentSession) => {
+      activeSession = currentSession;
+      stopPeriodicCheck();
+      if (!currentSession) return;
+      intervalId = setInterval(verifyActiveSession, 10000);
+    };
+
+    const handleVisibilityCheck = () => {
+      if (document.visibilityState === 'visible') {
+        verifyActiveSession();
+      }
+    };
+
+    window.addEventListener('focus', verifyActiveSession);
+    document.addEventListener('visibilitychange', handleVisibilityCheck);
+
     supabase.auth.getSession().then(({ data: { session: initialSession } }) => {
+      activeSession = initialSession;
       checkAdmin(initialSession);
+      startPeriodicCheck(initialSession);
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, currentSession) => {
+      activeSession = currentSession;
       checkAdmin(currentSession);
+      startPeriodicCheck(currentSession);
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      stopPeriodicCheck();
+      window.removeEventListener('focus', verifyActiveSession);
+      document.removeEventListener('visibilitychange', handleVisibilityCheck);
+      subscription.unsubscribe();
+    };
   }, []);
 
   const handleLogin = async (e) => {
@@ -225,7 +268,7 @@ function AdminDashboard({ onLogout, adminRole }) {
               ? <span className="badge badge-success" style={{ fontSize: '0.75rem' }}>● Supabase متصل</span>
               : <span className="badge badge-muted"   style={{ fontSize: '0.75rem' }}>○ وضع محلي فقط</span>
             }
-            <button className="btn btn-ghost btn-sm" onClick={onLogout}>تسجيل الخروج</button>
+            <button className="btn btn-ghost btn-sm admin-logout-btn" onClick={onLogout}>تسجيل الخروج</button>
           </div>
         </div>
 
@@ -1178,7 +1221,7 @@ function AdminManagementTab({ toast }) {
             <input type="checkbox" id="chk-senior" checked={form.isSenior} onChange={e => setForm({...form, isSenior: e.target.checked})} />
             <label htmlFor="chk-senior" style={{ margin: 0, cursor: 'pointer' }}>إدارة عليا (Super Admin)</label>
           </div>
-          <button type="submit" className="btn btn-primary" disabled={saving} style={{ flexBasis: '100%' }}>
+          <button type="submit" className="btn btn-primary admin-add-admin-btn" disabled={saving}>
             {saving ? 'جارٍ الإضافة...' : 'إضافة مشرف'}
           </button>
         </form>

@@ -126,7 +126,6 @@ export default function Home({ navigate }) {
           <div className="quick-nav-grid">
             {[
               ['📅', 'الفعاليات',  'استعرض ما هو قادم',    'events'],
-              ['🧩', 'اللجان',     'تعرف على فرق العمل',   'join'],
               ['💡', 'عن الجماعة', 'رسالتنا وأهدافنا',      'about'],
               ['📩', 'انضم إلينا', 'ابدأ رحلتك معنا',       'join'],
             ].map(([icon, title, sub, route], i) => (
