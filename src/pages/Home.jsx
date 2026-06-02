@@ -6,6 +6,9 @@ export default function Home({ navigate }) {
   const { data } = useStore();
   const next     = nextEvent(data.events);
   const heroRef  = useRef(null);
+  const activePartners = [...(data.successPartners || [])]
+    .filter((partner) => partner.active)
+    .sort((a, b) => (Number(a.displayOrder) || 0) - (Number(b.displayOrder) || 0));
 
   /* Subtle parallax on scroll */
   useEffect(() => {
@@ -119,6 +122,49 @@ export default function Home({ navigate }) {
           </div>
         </div>
       </section>
+
+      {/* ══ SUCCESS PARTNERS ══ */}
+      {activePartners.length > 0 && (
+        <section className="section section-tinted">
+          <div className="container">
+            <div className="section-header reveal">
+              <h2 className="section-title">شركاء النجاح</h2>
+              <p className="section-sub">نفخر بالتعاون مع الجهات الداعمة والشريكة لبرامج الجماعة</p>
+            </div>
+            <div className="partners-grid">
+              {activePartners.map((partner, i) => {
+                const content = (
+                  <>
+                    <img src={partner.logoUrl} alt={partner.name} className="partner-logo" />
+                    <span>{partner.name}</span>
+                  </>
+                );
+
+                return partner.websiteUrl ? (
+                  <a
+                    key={partner.id}
+                    href={partner.websiteUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="partner-card partner-card--link reveal"
+                    style={{ transitionDelay: `${i * 70}ms` }}
+                  >
+                    {content}
+                  </a>
+                ) : (
+                  <div
+                    key={partner.id}
+                    className="partner-card reveal"
+                    style={{ transitionDelay: `${i * 70}ms` }}
+                  >
+                    {content}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* ══ QUICK NAV ══ */}
       <section className="section section-tinted">

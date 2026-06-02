@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import { supabase } from './lib/supabase';
-import { toLocalEvent, toLocalAchievement, toLocalTask } from './lib/db';
+import { toLocalEvent, toLocalAchievement, toLocalTask, toLocalPartner } from './lib/db';
 
 const STORE_KEY = 'csss_v2';
 
@@ -165,6 +165,24 @@ const DEFAULT_ACHIEVEMENTS = [
   { id: 'ach-003', icon: '🌟', title: 'جائزة الإبداع الجامعي', description: 'تكريم المشاريع الإبداعية المتميزة لطلابنا على مستوى الجامعة', image: null },
 ];
 
+const demoPartnerLogo = (label, color) => (
+  `data:image/svg+xml;utf8,${encodeURIComponent(`
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 120">
+      <rect width="240" height="120" rx="24" fill="#ffffff"/>
+      <rect x="16" y="16" width="208" height="88" rx="20" fill="${color}" opacity="0.12"/>
+      <circle cx="66" cy="60" r="26" fill="${color}"/>
+      <text x="112" y="68" font-family="Arial, sans-serif" font-size="18" font-weight="700" fill="#432D61">${label}</text>
+    </svg>
+  `)}`
+);
+
+const DEFAULT_SUCCESS_PARTNERS = [
+  { id: 'partner-001', name: 'مختبر الابتكار', logoUrl: demoPartnerLogo('Innovation Lab', '#3FA4D3'), websiteUrl: '', displayOrder: 1, active: true },
+  { id: 'partner-002', name: 'مركز العلوم', logoUrl: demoPartnerLogo('Science Hub', '#432D61'), websiteUrl: '', displayOrder: 2, active: true },
+  { id: 'partner-003', name: 'رؤية المستقبل', logoUrl: demoPartnerLogo('Future Vision', '#2B87B5'), websiteUrl: '', displayOrder: 3, active: true },
+  { id: 'partner-004', name: 'أفق المعرفة', logoUrl: demoPartnerLogo('Knowledge Gate', '#5A3D80'), websiteUrl: '', displayOrder: 4, active: true },
+];
+
 const DEFAULT_STATS = [
   { id: 'stat-1', num: '500+', label: 'طالب مستفيد' },
   { id: 'stat-2', num: '20+',  label: 'فعالية سنوياً' },
@@ -178,6 +196,7 @@ const DEFAULT_STATE = {
   content: DEFAULT_CONTENT,
   tasks: DEFAULT_TASKS,
   achievements: DEFAULT_ACHIEVEMENTS,
+  successPartners: DEFAULT_SUCCESS_PARTNERS,
   stats: DEFAULT_STATS,
 };
 
@@ -194,6 +213,7 @@ function loadData() {
       content:      { ...DEFAULT_STATE.content, ...(parsed.content ?? {}) },
       tasks:        parsed.tasks        ?? DEFAULT_STATE.tasks,
       achievements: parsed.achievements ?? DEFAULT_STATE.achievements,
+      successPartners: parsed.successPartners ?? DEFAULT_STATE.successPartners,
       stats:        parsed.stats        ?? DEFAULT_STATE.stats,
     };
   } catch {
@@ -227,10 +247,11 @@ export function StoreProvider({ children }) {
 
     (async () => {
       try {
-        const [evtRes, achRes, taskRes] = await Promise.all([
+        const [evtRes, achRes, taskRes, partnerRes] = await Promise.all([
           supabase.from('events').select('*').order('date', { ascending: false }),
           supabase.from('achievements').select('*'),
           supabase.from('tasks').select('*'),
+          supabase.from('success_partners').select('*').order('display_order', { ascending: true }).order('created_at', { ascending: true }),
         ]);
 
         if (cancelled) return;
@@ -240,6 +261,7 @@ export function StoreProvider({ children }) {
           if (evtRes.data?.length)  next.events       = evtRes.data.map(toLocalEvent);
           if (achRes.data?.length)  next.achievements = achRes.data.map(toLocalAchievement);
           if (taskRes.data?.length) next.tasks        = taskRes.data.map(toLocalTask);
+          if (partnerRes.data?.length) next.successPartners = partnerRes.data.map(toLocalPartner);
           persist(next);
           return next;
         });

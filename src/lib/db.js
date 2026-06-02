@@ -69,6 +69,24 @@ export const toSupabaseAchievement = (a) => ({
   image_url:   a.image || null,
 });
 
+export const toLocalPartner = (r) => ({
+  id:           r.id,
+  name:         r.name        || '',
+  logoUrl:      r.logo_url    || '',
+  websiteUrl:   r.website_url || '',
+  displayOrder: r.display_order ?? 0,
+  active:       r.active ?? true,
+});
+
+export const toSupabasePartner = (p) => ({
+  id:            p.id,
+  name:          p.name,
+  logo_url:      p.logoUrl,
+  website_url:   p.websiteUrl || null,
+  display_order: Number(p.displayOrder) || 0,
+  active:        p.active ?? true,
+});
+
 export const toLocalTask = (r) => ({
   id:        r.id,
   name:      r.name      || r.task_name   || '', // handle both column variants
@@ -162,6 +180,49 @@ export async function upsertAchievement(ach) {
 export async function deleteAchievement(id) {
   if (!supabase) throw new Error('Supabase غير مُهيَّأ');
   const { error } = await supabase.from('achievements').delete().eq('id', id);
+  if (error) throw error;
+}
+
+/* ══ Success Partners ═════════════════════════════════════════ */
+
+export async function fetchSuccessPartners() {
+  if (!supabase) return null;
+  const { data, error } = await supabase
+    .from('success_partners')
+    .select('*')
+    .order('display_order', { ascending: true })
+    .order('created_at', { ascending: true });
+  if (error) throw error;
+  return data.map(toLocalPartner);
+}
+
+export async function upsertSuccessPartner(partner) {
+  if (!supabase) throw new Error('Supabase غير مُهيَّأ');
+
+  if (isValidUuid(partner.id)) {
+    const { data, error } = await supabase
+      .from('success_partners')
+      .upsert(toSupabasePartner(partner))
+      .select()
+      .single();
+    if (error) throw error;
+    return toLocalPartner(data);
+  }
+
+  const payload = toSupabasePartner(partner);
+  delete payload.id;
+  const { data, error } = await supabase
+    .from('success_partners')
+    .insert(payload)
+    .select()
+    .single();
+  if (error) throw error;
+  return toLocalPartner(data);
+}
+
+export async function deleteSuccessPartner(id) {
+  if (!supabase) throw new Error('Supabase غير مُهيَّأ');
+  const { error } = await supabase.from('success_partners').delete().eq('id', id);
   if (error) throw error;
 }
 

@@ -5,6 +5,7 @@ import { supabase, isSupabaseReady } from '../lib/supabase';
 import {
   upsertEvent,   deleteEvent,
   upsertAchievement, deleteAchievement,
+  upsertSuccessPartner, deleteSuccessPartner,
   upsertTask,    deleteTask,
   fetchParticipants, uploadParticipants, deleteParticipant,
   parseSpreadsheetFile, mapParticipantRows, isValidUuid,
@@ -20,6 +21,7 @@ const TABS = [
   { id: 'committees',   label: 'اللجان'       },
   { id: 'content',      label: 'المحتوى'      },
   { id: 'achievements', label: 'الإنجازات'    },
+  { id: 'successPartners', label: 'شركاء النجاح' },
   { id: 'tasks',        label: 'إدارة المهام' },
 ];
 
@@ -288,6 +290,7 @@ function AdminDashboard({ onLogout, adminRole }) {
         {tab === 'committees'   && <CommitteesTab    data={data} update={update} toast={toast} />}
         {tab === 'content'      && <ContentTab       data={data} update={update} toast={toast} />}
         {tab === 'achievements' && <AchievementsTab  data={data} update={update} toast={toast} />}
+        {tab === 'successPartners' && <SuccessPartnersTab data={data} update={update} toast={toast} />}
         {tab === 'tasks'        && <TasksTab         data={data} update={update} toast={toast} />}
         {tab === 'admins'       && adminRole === 'super_admin' && <AdminManagementTab toast={toast} />}
       </div>
@@ -1012,6 +1015,160 @@ function AchievementsTab({ data, update, toast }) {
       ))}
       {(data.achievements || []).length === 0 && (
         <div className="empty-state" style={{ padding: '40px' }}><p>لا توجد إنجازات. اضغط "+ إضافة" للبدء.</p></div>
+      )}
+    </div>
+  );
+}
+
+/* ══ SUCCESS PARTNERS TAB ═════════════════════════════════════ */
+function SuccessPartnersTab({ data, update, toast }) {
+  const [editing, setEditing] = useState(null);
+  const [saving, setSaving] = useState(false);
+  const fileRef = useRef(null);
+
+  const partners = [...(data.successPartners || [])]
+    .sort((a, b) => (Number(a.displayOrder) || 0) - (Number(b.displayOrder) || 0));
+
+  const blank = () => ({
+    id: generateId('partner'),
+    name: '',
+    logoUrl: '',
+    websiteUrl: '',
+    displayOrder: partners.length + 1,
+    active: true,
+  });
+  const [form, setForm] = useState(blank());
+
+  const openNew = () => { setForm(blank()); setEditing('new'); };
+  const openEdit = (partner) => { setForm({ ...partner }); setEditing(partner.id); };
+  const pf = (key) => (e) => setForm((prev) => ({ ...prev, [key]: e.target.value }));
+
+  const handleLogo = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (r) => setForm((prev) => ({ ...prev, logoUrl: r.target.result }));
+    reader.readAsDataURL(file);
+  };
+
+  const save = async () => {
+    if (!form.name.trim()) { toast.show('اسم الشريك مطلوب', 'error'); return; }
+    if (!form.logoUrl) { toast.show('شعار الشريك مطلوب', 'error'); return; }
+
+    setSaving(true);
+    let saved = { ...form, displayOrder: Number(form.displayOrder) || 0 };
+    try {
+      saved = await upsertSuccessPartner(saved);
+    } catch (err) {
+      console.warn('Supabase partner upsert error:', err);
+      toast.show('تم الحفظ محلياً — تعذّر الاتصال بقاعدة البيانات', 'error');
+    }
+
+    update((d) => {
+      const existing = d.successPartners || [];
+      const idx = existing.findIndex((p) => p.id === form.id || p.id === saved.id);
+      if (idx > -1) {
+        const arr = [...existing];
+        arr[idx] = saved;
+        return { ...d, successPartners: arr };
+      }
+      return { ...d, successPartners: [...existing, saved] };
+    });
+
+    toast.show(editing === 'new' ? 'تمت إضافة الشريك' : 'تم تحديث الشريك');
+    setSaving(false);
+    setEditing(null);
+  };
+
+  const del = async (id) => {
+    if (!confirm('هل أنت متأكد من حذف الشريك؟')) return;
+    try { if (isValidUuid(id)) await deleteSuccessPartner(id); } catch (err) { console.warn('Supabase partner delete error:', err); }
+    update((d) => ({ ...d, successPartners: (d.successPartners || []).filter((p) => p.id !== id) }));
+    toast.show('تم حذف الشريك');
+  };
+
+  const toggleActive = async (partner) => {
+    const nextPartner = { ...partner, active: !partner.active };
+    let saved = nextPartner;
+    try { saved = await upsertSuccessPartner(nextPartner); } catch (err) { console.warn('Supabase partner status error:', err); }
+    update((d) => ({
+      ...d,
+      successPartners: (d.successPartners || []).map((p) => p.id === partner.id ? saved : p),
+    }));
+    toast.show(partner.active ? 'تم تعطيل الشريك' : 'تم تفعيل الشريك');
+  };
+
+  if (editing !== null) {
+    return (
+      <div className="admin-form-panel">
+        <div className="admin-form-header">
+          <h3>{editing === 'new' ? 'إضافة شريك نجاح' : 'تعديل شريك نجاح'}</h3>
+          <button className="btn btn-ghost btn-sm" onClick={() => setEditing(null)}>← رجوع</button>
+        </div>
+        <div className="admin-form-grid">
+          <div className="form-group">
+            <label className="form-label">اسم الشريك *</label>
+            <input className="form-input" value={form.name} onChange={pf('name')} placeholder="اسم الجهة الشريكة" />
+          </div>
+          <div className="form-group">
+            <label className="form-label">ترتيب العرض</label>
+            <input className="form-input" type="number" value={form.displayOrder} onChange={pf('displayOrder')} />
+          </div>
+          <div className="form-group form-full">
+            <label className="form-label">رابط الموقع (اختياري)</label>
+            <input className="form-input" dir="ltr" value={form.websiteUrl} onChange={pf('websiteUrl')} placeholder="https://example.com" />
+          </div>
+          <div className="form-group form-full">
+            <label className="form-label">الشعار *</label>
+            <input ref={fileRef} type="file" accept="image/*" className="form-input" onChange={handleLogo} />
+            {form.logoUrl && (
+              <div className="partner-logo-preview">
+                <img src={form.logoUrl} alt={form.name || 'Partner logo'} />
+                <button className="btn btn-ghost btn-sm" onClick={() => setForm((f2) => ({ ...f2, logoUrl: '' }))}>مسح الشعار</button>
+              </div>
+            )}
+          </div>
+          <div className="form-group form-full">
+            <label className="toggle-label">
+              <input type="checkbox" checked={form.active} onChange={(e) => setForm((prev) => ({ ...prev, active: e.target.checked }))} className="toggle-check" />
+              <span className="toggle-ui" />
+              عرض الشريك في الموقع
+            </label>
+          </div>
+        </div>
+        <div className="form-actions">
+          <button className="btn btn-primary" onClick={save} disabled={saving}>{saving ? 'جارٍ الحفظ…' : 'حفظ'}</button>
+          <button className="btn btn-ghost" onClick={() => setEditing(null)} disabled={saving}>إلغاء</button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="admin-list-panel">
+      <div className="admin-list-header">
+        <h3>شركاء النجاح ({partners.length})</h3>
+        <button className="btn btn-primary btn-sm" onClick={openNew}>+ إضافة</button>
+      </div>
+      {partners.map((partner) => (
+        <div key={partner.id} className="admin-row">
+          <div className="admin-row-info">
+            <img src={partner.logoUrl} alt={partner.name} className="admin-partner-logo" />
+            <strong>{partner.name}</strong>
+            <span className={`status-badge ${partner.active ? 'status-dn' : 'status-ns'}`}>
+              {partner.active ? 'نشط' : 'معطل'}
+            </span>
+            <span className="text-muted">الترتيب: {partner.displayOrder ?? 0}</span>
+          </div>
+          <div className="admin-row-actions">
+            <button className="btn btn-ghost btn-sm" onClick={() => toggleActive(partner)}>{partner.active ? 'تعطيل' : 'تفعيل'}</button>
+            <button className="btn btn-ghost btn-sm" onClick={() => openEdit(partner)}>تعديل</button>
+            <button className="btn btn-danger btn-sm" onClick={() => del(partner.id)}>حذف</button>
+          </div>
+        </div>
+      ))}
+      {partners.length === 0 && (
+        <div className="empty-state" style={{ padding: '40px' }}><p>لا يوجد شركاء نجاح. اضغط "+ إضافة" للبدء.</p></div>
       )}
     </div>
   );

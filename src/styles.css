@@ -743,6 +743,45 @@ label, .nav-link, .mobile-nav-link, .events-tab { font-weight: 500; }
 .hl-card h3 { color: var(--p); font-size: 1.1rem; margin-bottom: 10px; }
 .hl-card p  { color: var(--tx2); font-size: 0.9rem; line-height: 1.8; }
 
+/* ── Success partners ─────────────────────────────────────── */
+.partners-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 18px;
+}
+.partner-card {
+  min-height: 138px;
+  background: rgba(255,255,255,.88);
+  border: 1px solid rgba(255,255,255,.9);
+  border-radius: var(--r-xl);
+  padding: 22px 18px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  text-align: center;
+  box-shadow: var(--sh-card);
+  transition: transform var(--t) var(--ease), box-shadow var(--t) var(--ease), border-color var(--t) var(--ease), background var(--t);
+}
+.partner-card--link:hover {
+  transform: translateY(-5px);
+  background: white;
+  border-color: rgba(67,45,97,.14);
+  box-shadow: var(--sh-card-hover);
+}
+.partner-logo {
+  width: 100%;
+  max-width: 150px;
+  height: 64px;
+  object-fit: contain;
+}
+.partner-card span {
+  color: var(--p);
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
 /* ── 13. QUICK NAV ───────────────────────────────────────── */
 .quick-nav-grid {
   display: grid;
@@ -1422,6 +1461,31 @@ textarea.form-input { resize: vertical; min-height: 80px; }
 .admin-row-info { display: flex; align-items: center; gap: 12px; flex: 1; flex-wrap: wrap; }
 .admin-row-info strong { color: var(--p); }
 .admin-row-actions { display: flex; gap: 8px; }
+.admin-partner-logo {
+  width: 52px;
+  height: 34px;
+  object-fit: contain;
+  background: white;
+  border: 1px solid var(--li);
+  border-radius: var(--r-sm);
+  padding: 4px;
+}
+.partner-logo-preview {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+.partner-logo-preview img {
+  width: 150px;
+  height: 74px;
+  object-fit: contain;
+  background: white;
+  border: 1px solid var(--li);
+  border-radius: var(--r);
+  padding: 8px;
+}
 
 .admin-page .btn,
 .admin-page .btn:hover,
@@ -1735,6 +1799,7 @@ textarea.form-input { resize: vertical; min-height: 80px; }
   .stats-grid         { grid-template-columns: repeat(2,1fr); }
   .highlights-grid    { grid-template-columns: repeat(2,1fr); }
   .quick-nav-grid     { grid-template-columns: repeat(2,1fr); }
+  .partners-grid      { grid-template-columns: repeat(3,1fr); }
   .about-pillars      { grid-template-columns: 1fr; max-width: 600px; margin: 0 auto; }
   .values-grid        { grid-template-columns: repeat(2,1fr); }
   .committees-grid    { grid-template-columns: repeat(2,1fr); }
@@ -1773,6 +1838,7 @@ textarea.form-input { resize: vertical; min-height: 80px; }
 
   /* ── Grids ── */
   .highlights-grid, .quick-nav-grid, .committees-grid, .about-pillars { grid-template-columns: 1fr; }
+  .partners-grid { grid-template-columns: repeat(2, 1fr); }
   .values-grid  { grid-template-columns: repeat(2,1fr); }
   .events-grid  { grid-template-columns: 1fr; }
   .stats-grid   { grid-template-columns: repeat(2,1fr); }
@@ -1866,9 +1932,12 @@ textarea.form-input { resize: vertical; min-height: 80px; }
   /* ── Grids ── */
   .values-grid { grid-template-columns: 1fr; }
   .stats-grid  { grid-template-columns: 1fr 1fr; }
+  .partners-grid { grid-template-columns: 1fr; }
 
   /* ── Cards ── */
   .hl-card, .committee-card { padding: 18px 16px; }
+  .partner-card { min-height: 118px; padding: 18px 14px; }
+  .partner-logo { height: 54px; }
   .qn-card { padding: 20px 14px; }
 
   /* ── Join steps ── */
