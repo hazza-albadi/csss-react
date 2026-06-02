@@ -246,11 +246,11 @@ export default function Admin() {
   }
 
   /* ── Logged in → show dashboard ── */
-  return <AdminDashboard onLogout={handleLogout} adminRole={adminRole} />;
+  return <AdminDashboard onLogout={handleLogout} adminRole={adminRole} currentAdminEmail={session?.user?.email || ''} />;
 }
 
 /* ── Dashboard shell ── */
-function AdminDashboard({ onLogout, adminRole }) {
+function AdminDashboard({ onLogout, adminRole, currentAdminEmail }) {
   const [tab, setTab] = useState('events');
   const { data, update } = useStore();
   const toast = useToast();
@@ -292,7 +292,7 @@ function AdminDashboard({ onLogout, adminRole }) {
         {tab === 'achievements' && <AchievementsTab  data={data} update={update} toast={toast} />}
         {tab === 'successPartners' && <SuccessPartnersTab data={data} update={update} toast={toast} />}
         {tab === 'tasks'        && <TasksTab         data={data} update={update} toast={toast} />}
-        {tab === 'admins'       && adminRole === 'super_admin' && <AdminManagementTab toast={toast} />}
+        {tab === 'admins'       && adminRole === 'super_admin' && <AdminManagementTab toast={toast} currentAdminEmail={currentAdminEmail} />}
       </div>
 
       {toast.msg && (
@@ -1298,7 +1298,7 @@ function useToast() {
 }
 
 /* ══ ADMIN MANAGEMENT TAB ════════════════════════════════════ */
-function AdminManagementTab({ toast }) {
+function AdminManagementTab({ toast, currentAdminEmail }) {
   const [admins, setAdmins] = useState([]);
   const [loading, setLoading] = useState(true);
   const [form, setForm] = useState({ fullName: '', email: '', isSenior: false });
@@ -1349,6 +1349,32 @@ function AdminManagementTab({ toast }) {
     }
 
     toast.show(admin.active ? 'تم تعطيل المشرف' : 'تم تفعيل المشرف', 'success');
+    loadAdmins();
+  };
+
+  const deleteAdmin = async (admin) => {
+    if (!supabase) return;
+
+    const currentEmail = normalizeEmail(currentAdminEmail || '');
+    const targetEmail = normalizeEmail(admin.email || '');
+    if (currentEmail && currentEmail === targetEmail) {
+      toast.show('لا يمكنك حذف حسابك الحالي', 'error');
+      return;
+    }
+
+    if (!confirm('هل أنت متأكد من حذف هذا المشرف؟ لا يمكن التراجع عن هذا الإجراء.')) return;
+
+    const { error } = await supabase
+      .from('admins')
+      .delete()
+      .eq('id', admin.id);
+
+    if (error) {
+      toast.show('حدث خطأ أثناء حذف المشرف', 'error');
+      return;
+    }
+
+    toast.show('تم حذف المشرف بنجاح', 'success');
     loadAdmins();
   };
 
@@ -1413,9 +1439,16 @@ function AdminManagementTab({ toast }) {
                     </span>
                   </td>
                   <td style={{ padding: 12 }}>
-                    <button className="btn btn-ghost btn-sm" onClick={() => toggleActive(a)}>
-                      {a.active ? 'تعطيل' : 'تفعيل'}
-                    </button>
+                    <div className="admin-row-actions">
+                      <button className="btn btn-ghost btn-sm" onClick={() => toggleActive(a)}>
+                        {a.active ? 'تعطيل' : 'تفعيل'}
+                      </button>
+                      {normalizeEmail(currentAdminEmail || '') !== normalizeEmail(a.email || '') && (
+                        <button className="btn btn-danger btn-sm" onClick={() => deleteAdmin(a)}>
+                          حذف
+                        </button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}
