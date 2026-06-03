@@ -9,16 +9,7 @@ import Join   from './pages/Join';
 import Events from './pages/Events';
 import Admin  from './pages/Admin';
 
-import { Analytics } from '@vercel/analytics/react';
- 
-export default function App() {
-  return (
-    <div>
-      {/* ... */}
-      <Analytics />
-    </div>
-  );
-}
+
 
 const PAGES = { home: Home, about: About, events: Events, join: Join, admin: Admin };
 
