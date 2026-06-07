@@ -428,3 +428,113 @@ export async function deleteParticipant(id) {
   const { error } = await supabase.from('certificate_participants').delete().eq('id', id);
   if (error) throw error;
 }
+
+/* ══ Vision Sections ═══════════════════════════════════════════ */
+
+export const toLocalVisionSection = (r) => ({
+  id:           r.id,
+  name:         r.name         || '',
+  displayOrder: r.display_order ?? 0,
+  createdAt:    r.created_at   || '',
+});
+
+export const toLocalVision = (r) => ({
+  id:           r.id,
+  sectionId:    r.section_id   || '',
+  title:        r.title        || '',
+  description:  r.description  || '',
+  fileUrl:      r.file_url     || '',
+  displayOrder: r.display_order ?? 0,
+  createdAt:    r.created_at   || '',
+});
+
+export async function fetchVisionSections() {
+  if (!supabase) return [];
+  const { data, error } = await supabase
+    .from('vision_sections')
+    .select('*')
+    .order('display_order', { ascending: true })
+    .order('created_at',    { ascending: true });
+  if (error) throw error;
+  return (data || []).map(toLocalVisionSection);
+}
+
+export async function upsertVisionSection(section) {
+  if (!supabase) throw new Error('Supabase غير مُهيَّأ');
+  const payload = { name: section.name.trim(), display_order: Number(section.displayOrder) || 0 };
+
+  if (isValidUuid(section.id)) {
+    const { data, error } = await supabase
+      .from('vision_sections')
+      .update(payload)
+      .eq('id', section.id)
+      .select()
+      .single();
+    if (error) throw error;
+    return toLocalVisionSection(data);
+  }
+
+  const { data, error } = await supabase
+    .from('vision_sections')
+    .insert(payload)
+    .select()
+    .single();
+  if (error) throw error;
+  return toLocalVisionSection(data);
+}
+
+export async function deleteVisionSection(id) {
+  if (!supabase) throw new Error('Supabase غير مُهيَّأ');
+  // Cascades to visions (ON DELETE CASCADE in schema)
+  const { error } = await supabase.from('vision_sections').delete().eq('id', id);
+  if (error) throw error;
+}
+
+/* ══ Visions ═══════════════════════════════════════════════════ */
+
+export async function fetchVisions() {
+  if (!supabase) return [];
+  const { data, error } = await supabase
+    .from('visions')
+    .select('*')
+    .order('display_order', { ascending: true })
+    .order('created_at',    { ascending: true });
+  if (error) throw error;
+  return (data || []).map(toLocalVision);
+}
+
+export async function upsertVision(vision) {
+  if (!supabase) throw new Error('Supabase غير مُهيَّأ');
+  const payload = {
+    section_id:    vision.sectionId,
+    title:         vision.title.trim(),
+    description:   vision.description?.trim() || null,
+    file_url:      vision.fileUrl.trim(),
+    display_order: Number(vision.displayOrder) || 0,
+  };
+
+  if (isValidUuid(vision.id)) {
+    const { data, error } = await supabase
+      .from('visions')
+      .update(payload)
+      .eq('id', vision.id)
+      .select()
+      .single();
+    if (error) throw error;
+    return toLocalVision(data);
+  }
+
+  const { data, error } = await supabase
+    .from('visions')
+    .insert(payload)
+    .select()
+    .single();
+  if (error) throw error;
+  return toLocalVision(data);
+}
+
+export async function deleteVision(id) {
+  if (!supabase) throw new Error('Supabase غير مُهيَّأ');
+  const { error } = await supabase.from('visions').delete().eq('id', id);
+  if (error) throw error;
+}

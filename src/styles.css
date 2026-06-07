@@ -1665,6 +1665,51 @@ textarea.form-input { resize: vertical; min-height: 80px; }
   line-height: 1.6;
 }
 
+/* ── 21f. VISIONS TAB ────────────────────────────────────── */
+.visions-toolbar {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+.visions-search { flex: 1; min-width: 200px; }
+.visions-filter { width: 220px; }
+.visions-section-block { margin-bottom: 32px; }
+.visions-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 12px;
+  border-bottom: 2px solid var(--li);
+  margin-bottom: 16px;
+}
+.visions-section-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--p);
+}
+.visions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.vision-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 18px;
+  background: var(--bg);
+  border: 1px solid var(--li);
+  border-radius: var(--r-lg);
+  transition: background var(--t), border-color var(--t);
+  flex-wrap: wrap;
+}
+.vision-row:hover { background: white; border-color: rgba(67,45,97,.14); }
+.vision-row-info { display: flex; align-items: center; gap: 14px; flex: 1; flex-wrap: wrap; }
+.vision-icon { font-size: 1.4rem; line-height: 1; }
+.vision-actions { display: flex; gap: 8px; }
+
 /* ── 22. MASCOT ──────────────────────────────────────────── */
 .mascot {
   position: fixed;

@@ -9,6 +9,8 @@ import {
   upsertTask,    deleteTask,
   fetchParticipants, uploadParticipants, deleteParticipant,
   parseSpreadsheetFile, mapParticipantRows, isValidUuid,
+  fetchVisionSections, upsertVisionSection, deleteVisionSection,
+  fetchVisions, upsertVision, deleteVision,
 } from '../lib/db';
 
 /* ════════════════════════════════════════════════════════════
@@ -23,6 +25,7 @@ const TABS = [
   { id: 'achievements', label: 'الإنجازات'    },
   { id: 'successPartners', label: 'شركاء النجاح' },
   { id: 'tasks',        label: 'إدارة المهام' },
+  { id: 'visions',      label: 'التصورات'     },
 ];
 
 const STATUS_LABELS = { 'not-started': 'لم يبدأ', 'in-progress': 'جارٍ', 'done': 'مكتمل' };
@@ -292,6 +295,7 @@ function AdminDashboard({ onLogout, adminRole, currentAdminEmail }) {
         {tab === 'achievements' && <AchievementsTab  data={data} update={update} toast={toast} />}
         {tab === 'successPartners' && <SuccessPartnersTab data={data} update={update} toast={toast} />}
         {tab === 'tasks'        && <TasksTab         data={data} update={update} toast={toast} />}
+        {tab === 'visions'      && <VisionsTab       adminRole={adminRole} toast={toast} />}
         {tab === 'admins'       && adminRole === 'super_admin' && <AdminManagementTab toast={toast} currentAdminEmail={currentAdminEmail} />}
       </div>
 
@@ -1457,6 +1461,266 @@ function AdminManagementTab({ toast, currentAdminEmail }) {
           </table>
         </div>
       </div>
+    </div>
+  );
+}
+
+/* ══ VISIONS TAB ═════════════════════════════════════════════ */
+function VisionsTab({ adminRole, toast }) {
+  const [sections, setSections] = useState([]);
+  const [visions, setVisions] = useState([]);
+  const [loading, setLoading] = useState(true);
+  
+  const [search, setSearch] = useState('');
+  const [filterSection, setFilterSection] = useState('all');
+  const [sortAlpha, setSortAlpha] = useState(false);
+
+  const [editingSection, setEditingSection] = useState(null);
+  const [editingVision, setEditingVision] = useState(null);
+  
+  const isSuperAdmin = adminRole === 'super_admin';
+
+  const loadData = async () => {
+    if (!supabase) { setLoading(false); return; }
+    setLoading(true);
+    try {
+      const [secRes, visRes] = await Promise.all([
+        fetchVisionSections(),
+        fetchVisions(),
+      ]);
+      setSections(secRes);
+      setVisions(visRes);
+    } catch (err) {
+      console.warn('Visions fetch error:', err);
+      toast.show('تعذّر تحميل البيانات من قاعدة البيانات', 'error');
+    }
+    setLoading(false);
+  };
+
+  useEffect(() => { loadData(); }, []);
+
+  // -- Section actions
+  const saveSection = async (secForm) => {
+    try {
+      const saved = await upsertVisionSection(secForm);
+      setSections(prev => {
+        const idx = prev.findIndex(s => s.id === saved.id || s.id === secForm.id);
+        if (idx > -1) {
+          const next = [...prev]; next[idx] = saved; return next;
+        }
+        return [...prev, saved];
+      });
+      toast.show(secForm.id.startsWith('sec-') ? 'تمت إضافة القسم' : 'تم تحديث القسم');
+      setEditingSection(null);
+    } catch (err) {
+      toast.show('تعذّر حفظ القسم. تأكد من عدم تكرار الاسم.', 'error');
+    }
+  };
+
+  const delSection = async (id) => {
+    const sectionVisionsCount = visions.filter(v => v.sectionId === id).length;
+    if (!confirm(`هل أنت متأكد من حذف هذا القسم؟\nسيتم حذف ${sectionVisionsCount} تصورات معه ولن يمكنك التراجع.`)) return;
+    try {
+      await deleteVisionSection(id);
+      setSections(prev => prev.filter(s => s.id !== id));
+      setVisions(prev => prev.filter(v => v.sectionId !== id)); // Optimitic cascade
+      toast.show('تم حذف القسم والتصورات المرتبطة به');
+    } catch {
+      toast.show('تعذّر حذف القسم', 'error');
+    }
+  };
+
+  // -- Vision actions
+  const saveVision = async (visForm) => {
+    if (!isValidUrl(visForm.fileUrl)) {
+      toast.show('يرجى إدخال رابط صحيح', 'error');
+      return;
+    }
+    try {
+      const saved = await upsertVision(visForm);
+      setVisions(prev => {
+        const idx = prev.findIndex(v => v.id === saved.id || v.id === visForm.id);
+        if (idx > -1) {
+          const next = [...prev]; next[idx] = saved; return next;
+        }
+        return [...prev, saved];
+      });
+      toast.show(visForm.id.startsWith('vis-') ? 'تمت إضافة التصور' : 'تم تحديث التصور');
+      setEditingVision(null);
+    } catch (err) {
+      toast.show('تعذّر حفظ التصور. تأكد من عدم تكرار العنوان داخل نفس القسم.', 'error');
+    }
+  };
+
+  const delVision = async (id) => {
+    if (!confirm('هل أنت متأكد من حذف هذا التصور؟')) return;
+    try {
+      await deleteVision(id);
+      setVisions(prev => prev.filter(v => v.id !== id));
+      toast.show('تم حذف التصور');
+    } catch {
+      toast.show('تعذّر حذف التصور', 'error');
+    }
+  };
+
+  // Helpers
+  const isValidUrl = (str) => {
+    try { new URL(str); return true; } catch { return false; }
+  };
+  
+  const copyLink = (url) => {
+    navigator.clipboard.writeText(url);
+    toast.show('تم نسخ الرابط');
+  };
+
+  // Derived data
+  const filteredVisions = visions.filter(v => {
+    const matchSearch = v.title.toLowerCase().includes(search.toLowerCase());
+    const matchSection = filterSection === 'all' || v.sectionId === filterSection;
+    return matchSearch && matchSection;
+  }).sort((a, b) => {
+    if (sortAlpha) return a.title.localeCompare(b.title, 'ar');
+    return (a.displayOrder || 0) - (b.displayOrder || 0);
+  });
+
+  if (loading) return <div className="admin-loading"><div className="spinner" /></div>;
+
+  return (
+    <div className="admin-list-panel">
+      <div className="admin-list-header" style={{ marginBottom: 24 }}>
+        <h3>التصورات والمرجعيات</h3>
+        {isSuperAdmin && (
+          <button className="btn btn-primary btn-sm" onClick={() => setEditingSection({ id: generateId('sec'), name: '', displayOrder: sections.length + 1 })}>
+            + إضافة قسم
+          </button>
+        )}
+      </div>
+
+      <div className="visions-toolbar">
+        <input 
+          className="form-input visions-search" 
+          placeholder="ابحث عن تصور..." 
+          value={search} 
+          onChange={e => setSearch(e.target.value)} 
+        />
+        <select className="form-input visions-filter" value={filterSection} onChange={e => setFilterSection(e.target.value)}>
+          <option value="all">جميع الأقسام</option>
+          {sections.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+        </select>
+        <button className="btn btn-ghost btn-sm" onClick={() => setSortAlpha(!sortAlpha)}>
+          {sortAlpha ? 'ترتيب: أبجدي' : 'ترتيب: مخصص'}
+        </button>
+      </div>
+
+      {sections.filter(s => filterSection === 'all' || filterSection === s.id).map(section => {
+        const sectionVisions = filteredVisions.filter(v => v.sectionId === section.id);
+        
+        return (
+          <div key={section.id} className="visions-section-block">
+            <div className="visions-section-head">
+              <h4 className="visions-section-title">{section.name}</h4>
+              {isSuperAdmin && (
+                <div className="vision-actions">
+                  <button className="btn btn-ghost btn-xs" onClick={() => setEditingVision({ id: generateId('vis'), sectionId: section.id, title: '', description: '', fileUrl: '', displayOrder: sectionVisions.length + 1 })}>+ تصور</button>
+                  <button className="btn btn-ghost btn-xs" onClick={() => setEditingSection(section)}>تعديل</button>
+                  <button className="btn btn-danger btn-xs" onClick={() => delSection(section.id)}>حذف</button>
+                </div>
+              )}
+            </div>
+
+            {sectionVisions.length === 0 ? (
+              <p className="text-muted" style={{ padding: '10px 16px', fontSize: '0.85rem' }}>لا توجد تصورات في هذا القسم.</p>
+            ) : (
+              <div className="visions-list">
+                {sectionVisions.map(vision => (
+                  <div key={vision.id} className="vision-row">
+                    <div className="vision-row-info">
+                      <span className="vision-icon">📄</span>
+                      <div>
+                        <strong>{vision.title}</strong>
+                        {vision.description && <p className="text-muted" style={{ margin: 0, fontSize: '0.8rem' }}>{vision.description}</p>}
+                      </div>
+                    </div>
+                    <div className="vision-actions">
+                      <button className="btn btn-ghost btn-sm" onClick={() => window.open(vision.fileUrl, '_blank')}>فتح</button>
+                      <button className="btn btn-ghost btn-sm" onClick={() => copyLink(vision.fileUrl)}>نسخ</button>
+                      {isSuperAdmin && (
+                        <>
+                          <button className="btn btn-ghost btn-sm" onClick={() => setEditingVision(vision)}>تعديل</button>
+                          <button className="btn btn-danger btn-sm" onClick={() => delVision(vision.id)}>حذف</button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      })}
+
+      {sections.length === 0 && (
+        <div className="empty-state" style={{ padding: '40px' }}>
+          <p>لا توجد أقسام حالياً. {isSuperAdmin ? 'اضغط "+ إضافة قسم" للبدء.' : ''}</p>
+        </div>
+      )}
+
+      {/* -- Modals -- */}
+      {editingSection && (
+        <div className="modal-overlay" onClick={() => setEditingSection(null)}>
+          <div className="modal" style={{ maxWidth: 400 }} onClick={e => e.stopPropagation()}>
+            <button className="modal-close" onClick={() => setEditingSection(null)}>✕</button>
+            <h3 className="modal-title" style={{ marginBottom: 20 }}>{editingSection.id.startsWith('sec-') ? 'إضافة قسم جديد' : 'تعديل القسم'}</h3>
+            <div className="form-group">
+              <label className="form-label">اسم القسم *</label>
+              <input className="form-input" value={editingSection.name} onChange={e => setEditingSection({...editingSection, name: e.target.value})} placeholder="مثال: الفعاليات" />
+            </div>
+            <div className="form-group">
+              <label className="form-label">الترتيب</label>
+              <input className="form-input" type="number" value={editingSection.displayOrder} onChange={e => setEditingSection({...editingSection, displayOrder: e.target.value})} />
+            </div>
+            <div className="modal-actions" style={{ marginTop: 24 }}>
+              <button className="btn btn-primary" onClick={() => editingSection.name.trim() && saveSection(editingSection)}>حفظ</button>
+              <button className="btn btn-ghost" onClick={() => setEditingSection(null)}>إلغاء</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {editingVision && (
+        <div className="modal-overlay" onClick={() => setEditingVision(null)}>
+          <div className="modal" style={{ maxWidth: 500 }} onClick={e => e.stopPropagation()}>
+            <button className="modal-close" onClick={() => setEditingVision(null)}>✕</button>
+            <h3 className="modal-title" style={{ marginBottom: 20 }}>{editingVision.id.startsWith('vis-') ? 'إضافة تصور جديد' : 'تعديل التصور'}</h3>
+            <div className="form-group">
+              <label className="form-label">القسم *</label>
+              <select className="form-input" value={editingVision.sectionId} onChange={e => setEditingVision({...editingVision, sectionId: e.target.value})}>
+                {sections.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+              </select>
+            </div>
+            <div className="form-group">
+              <label className="form-label">العنوان *</label>
+              <input className="form-input" value={editingVision.title} onChange={e => setEditingVision({...editingVision, title: e.target.value})} placeholder="مثال: تصور العيد الوطني" />
+            </div>
+            <div className="form-group">
+              <label className="form-label">رابط الملف/المستند *</label>
+              <input className="form-input" dir="ltr" value={editingVision.fileUrl} onChange={e => setEditingVision({...editingVision, fileUrl: e.target.value})} placeholder="https://..." />
+            </div>
+            <div className="form-group">
+              <label className="form-label">الوصف (اختياري)</label>
+              <textarea className="form-input" rows="2" value={editingVision.description || ''} onChange={e => setEditingVision({...editingVision, description: e.target.value})} placeholder="وصف قصير للتصور..." />
+            </div>
+            <div className="form-group">
+              <label className="form-label">الترتيب</label>
+              <input className="form-input" type="number" value={editingVision.displayOrder} onChange={e => setEditingVision({...editingVision, displayOrder: e.target.value})} />
+            </div>
+            <div className="modal-actions" style={{ marginTop: 24 }}>
+              <button className="btn btn-primary" onClick={() => editingVision.title.trim() && editingVision.fileUrl.trim() && saveVision(editingVision)}>حفظ</button>
+              <button className="btn btn-ghost" onClick={() => setEditingVision(null)}>إلغاء</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
