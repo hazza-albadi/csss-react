@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { useStore, generateId } from '../store';
 import { formatDate } from '../utils/helpers';
 import { supabase, isSupabaseReady } from '../lib/supabase';
@@ -1666,9 +1667,9 @@ function VisionsTab({ adminRole, toast }) {
       )}
 
       {/* -- Modals -- */}
-      {editingSection && (
+      {editingSection && createPortal(
         <div className="modal-overlay" onClick={() => setEditingSection(null)}>
-          <div className="modal" style={{ maxWidth: 400, maxHeight: 'calc(100dvh - 40px)', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
+          <div className="modal" style={{ maxWidth: 400 }} onClick={e => e.stopPropagation()}>
             <button className="modal-close" onClick={() => setEditingSection(null)}>✕</button>
             <h3 className="modal-title" style={{ marginBottom: 20 }}>{editingSection.id.startsWith('sec-') ? 'إضافة قسم جديد' : 'تعديل القسم'}</h3>
             <div className="form-group">
@@ -1684,12 +1685,13 @@ function VisionsTab({ adminRole, toast }) {
               <button className="btn btn-ghost" onClick={() => setEditingSection(null)}>إلغاء</button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
-      {editingVision && (
+      {editingVision && createPortal(
         <div className="modal-overlay" onClick={() => setEditingVision(null)}>
-          <div className="modal" style={{ maxWidth: 500, maxHeight: 'calc(100dvh - 40px)', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
+          <div className="modal" style={{ maxWidth: 500 }} onClick={e => e.stopPropagation()}>
             <button className="modal-close" onClick={() => setEditingVision(null)}>✕</button>
             <h3 className="modal-title" style={{ marginBottom: 20 }}>{editingVision.id.startsWith('vis-') ? 'إضافة تصور جديد' : 'تعديل التصور'}</h3>
             <div className="form-group">
@@ -1719,7 +1721,8 @@ function VisionsTab({ adminRole, toast }) {
               <button className="btn btn-ghost" onClick={() => setEditingVision(null)}>إلغاء</button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
