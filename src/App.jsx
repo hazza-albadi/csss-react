@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { SpeedInsights } from '@vercel/speed-insights/react';
 import { StoreProvider } from './store';
 import Nav    from './components/Nav';
 import Footer from './components/Footer';
@@ -60,6 +61,7 @@ export default function App() {
 
       <Footer navigate={navigate} />
       <Mascot />
+      <SpeedInsights />
     </StoreProvider>
   );
 }
