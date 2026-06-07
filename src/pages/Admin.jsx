@@ -1667,8 +1667,8 @@ function VisionsTab({ adminRole, toast }) {
 
       {/* -- Modals -- */}
       {editingSection && (
-        <div className="modal-overlay" onClick={() => setEditingSection(null)}>
-          <div className="modal" style={{ maxWidth: 400 }} onClick={e => e.stopPropagation()}>
+        <div className="modal-overlay" style={{ alignItems: 'flex-start', overflowY: 'auto' }} onClick={() => setEditingSection(null)}>
+          <div className="modal" style={{ maxWidth: 400, margin: 'auto' }} onClick={e => e.stopPropagation()}>
             <button className="modal-close" onClick={() => setEditingSection(null)}>✕</button>
             <h3 className="modal-title" style={{ marginBottom: 20 }}>{editingSection.id.startsWith('sec-') ? 'إضافة قسم جديد' : 'تعديل القسم'}</h3>
             <div className="form-group">
@@ -1688,8 +1688,8 @@ function VisionsTab({ adminRole, toast }) {
       )}
 
       {editingVision && (
-        <div className="modal-overlay" onClick={() => setEditingVision(null)}>
-          <div className="modal" style={{ maxWidth: 500 }} onClick={e => e.stopPropagation()}>
+        <div className="modal-overlay" style={{ alignItems: 'flex-start', overflowY: 'auto' }} onClick={() => setEditingVision(null)}>
+          <div className="modal" style={{ maxWidth: 500, margin: 'auto' }} onClick={e => e.stopPropagation()}>
             <button className="modal-close" onClick={() => setEditingVision(null)}>✕</button>
             <h3 className="modal-title" style={{ marginBottom: 20 }}>{editingVision.id.startsWith('vis-') ? 'إضافة تصور جديد' : 'تعديل التصور'}</h3>
             <div className="form-group">
