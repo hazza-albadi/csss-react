@@ -1192,9 +1192,10 @@ label, .nav-link, .mobile-nav-link, .events-tab { font-weight: 500; }
   backdrop-filter: blur(12px);
   z-index: 800;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
   padding: 20px;
+  overflow-y: auto;
   animation: fadeIn 0.25s ease;
 }
 .modal {
@@ -1206,9 +1207,8 @@ label, .nav-link, .mobile-nav-link, .events-tab { font-weight: 500; }
   padding: 36px;
   width: 100%;
   max-width: 860px;
-  max-height: 90vh;
-  overflow-y: auto;
   position: relative;
+  margin: auto;
   box-shadow:
     0 24px 64px rgba(14,10,22,.45),
     inset 0 1px 0 rgba(255,255,255,.95);
