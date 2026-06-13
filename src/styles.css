@@ -1207,11 +1207,12 @@ label, .nav-link, .mobile-nav-link, .events-tab { font-weight: 500; }
   inset: 0;
   background: rgba(14,10,22,.85);
   backdrop-filter: blur(12px);
-  z-index: 800;
+  z-index: 950;
   display: flex;
   align-items: flex-start;
   justify-content: center;
   padding: 20px;
+  padding-top: calc(var(--nav-h) + 20px);
   overflow-y: auto;
   animation: fadeIn 0.25s ease;
 }
@@ -2035,7 +2036,7 @@ textarea.form-input { resize: vertical; min-height: 80px; }
   .admin-tab { padding: 8px 12px; font-size: 0.8rem; }
 
   /* ── Modal ── */
-  .modal-overlay { padding: 10px; }
+  .modal-overlay { padding: 10px; padding-top: calc(var(--nav-h) + 10px); }
   .modal { padding: 18px 14px; border-radius: var(--r-lg); }
   .modal-title  { font-size: 1.25rem; }
 
