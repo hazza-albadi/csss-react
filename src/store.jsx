@@ -88,7 +88,7 @@ const DEFAULT_COMMITTEES = [
   },
   {
     id: 'com-003',
-    name: 'لجنة التنظيم',
+    name: 'اللجنة التنظيمية',
     nameEn: 'Organization',
     description:
       'التخطيط الدقيق وتنفيذ الفعاليات بكفاءة عالية لضمان تجربة استثنائية لجميع المشاركين.',
@@ -97,7 +97,7 @@ const DEFAULT_COMMITTEES = [
   },
   {
     id: 'com-005',
-    name: 'لجنة الإعلام',
+    name: 'اللجنة الإعلامية',
     nameEn: 'Media',
     description:
       'التصميم وإنشاء المحتوى والتوثيق وسرد قصة الجمعية بإبداع عبر جميع المنصات الرقمية.',
@@ -193,16 +193,27 @@ const DEFAULT_STATE = {
 
 /* ─── Load / merge with defaults ───────────────────────────── */
 
+/* Old Arabic committee names → unified names, for users with saved state. */
+const COMMITTEE_NAME_RENAMES = {
+  'لجنة التنظيم': 'اللجنة التنظيمية',
+  'لجنة الإعلام': 'اللجنة الإعلامية',
+};
+
 /* One-time migration: existing localStorage data may still hold the old,
    separate "Relations" and "Finance" committees — merge them into the
-   single "Relations and Finance" committee for users with saved state. */
+   single "Relations and Finance" committee for users with saved state.
+   Also applies the unified Arabic naming for "التنظيم"/"الإعلام". */
 function migrateCommittees(committees) {
-  const financeIdx   = committees.findIndex((c) => c.id === 'com-004' || c.nameEn === 'Finance');
-  const relationsIdx = committees.findIndex((c) => c.id === 'com-002' || c.nameEn === 'Relations');
-  if (financeIdx === -1 || relationsIdx === -1) return committees;
+  let result = committees.map((c) =>
+    COMMITTEE_NAME_RENAMES[c.name] ? { ...c, name: COMMITTEE_NAME_RENAMES[c.name] } : c
+  );
 
-  const finance   = committees[financeIdx];
-  const relations = committees[relationsIdx];
+  const financeIdx   = result.findIndex((c) => c.id === 'com-004' || c.nameEn === 'Finance');
+  const relationsIdx = result.findIndex((c) => c.id === 'com-002' || c.nameEn === 'Relations');
+  if (financeIdx === -1 || relationsIdx === -1) return result;
+
+  const finance   = result[financeIdx];
+  const relations = result[relationsIdx];
   const merged = {
     ...relations,
     name:        'لجنة العلاقات والمالية',
@@ -210,7 +221,7 @@ function migrateCommittees(committees) {
     description: `${relations.description} ${finance.description}`.trim(),
   };
 
-  return committees
+  return result
     .filter((c) => c.id !== finance.id)
     .map((c) => (c.id === relations.id ? merged : c));
 }

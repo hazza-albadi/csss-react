@@ -84,10 +84,7 @@ export default function Join() {
               >
                 <div className="com-top">
                   <div className="com-icon">{ICONS[c.icon] ?? ICONS.target}</div>
-                  <div>
-                    <h3 className="com-name">{c.name}</h3>
-                    <p className="com-name-en">{c.nameEn}</p>
-                  </div>
+                  <h3 className="com-name">{c.name}</h3>
                 </div>
                 <p className="com-desc">{c.description}</p>
                 <a
