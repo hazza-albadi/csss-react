@@ -31,7 +31,7 @@ const TABS = [
 
 const STATUS_LABELS = { 'not-started': 'لم يبدأ', 'in-progress': 'جارٍ', 'done': 'مكتمل' };
 const STATUS_COLORS = { 'not-started': 'status-ns', 'in-progress': 'status-ip', 'done': 'status-dn' };
-const COM_SECTIONS  = ['المشاريع', 'الإعلام', 'العلاقات', 'التنظيم', 'المالية'];
+const COM_SECTIONS  = ['المشاريع', 'الإعلام', 'العلاقات والمالية', 'التنظيم'];
 const normalizeEmail = (value) => value.trim().toLowerCase();
 const DISABLED_ADMIN_MSG = 'Your account has been disabled. Please contact a Super Admin.';
 

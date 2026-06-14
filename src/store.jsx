@@ -79,10 +79,10 @@ const DEFAULT_COMMITTEES = [
   },
   {
     id: 'com-002',
-    name: 'لجنة العلاقات',
-    nameEn: 'Relations',
+    name: 'لجنة العلاقات والمالية',
+    nameEn: 'Relations and Finance',
     description:
-      'بناء شراكات استراتيجية مع المؤسسات الأكاديمية والشركات لفتح آفاق جديدة للطلاب.',
+      'بناء شراكات استراتيجية مع المؤسسات الأكاديمية والشركات لفتح آفاق جديدة للطلاب، إلى جانب إدارة الميزانيات والتخطيط المالي بشفافية لضمان الاستدامة المالية لجميع أنشطة الجمعية.',
     formLink: 'https://forms.google.com',
     icon: 'handshake',
   },
@@ -94,15 +94,6 @@ const DEFAULT_COMMITTEES = [
       'التخطيط الدقيق وتنفيذ الفعاليات بكفاءة عالية لضمان تجربة استثنائية لجميع المشاركين.',
     formLink: 'https://forms.google.com',
     icon: 'target',
-  },
-  {
-    id: 'com-004',
-    name: 'لجنة المالية',
-    nameEn: 'Finance',
-    description:
-      'إدارة الميزانيات والتخطيط المالي بشفافية لضمان الاستدامة المالية لجميع أنشطة الجمعية.',
-    formLink: 'https://forms.google.com',
-    icon: 'finance',
   },
   {
     id: 'com-005',
@@ -143,7 +134,7 @@ const DEFAULT_TASKS = [
     id: 'task-002',
     name: 'التواصل مع الرعاة',
     event: 'يوم العلوم السنوي 2025',
-    committee: 'العلاقات',
+    committee: 'العلاقات والمالية',
     deadline: '2025-05-20',
     status: 'done',
     notes: '',
@@ -202,6 +193,28 @@ const DEFAULT_STATE = {
 
 /* ─── Load / merge with defaults ───────────────────────────── */
 
+/* One-time migration: existing localStorage data may still hold the old,
+   separate "Relations" and "Finance" committees — merge them into the
+   single "Relations and Finance" committee for users with saved state. */
+function migrateCommittees(committees) {
+  const financeIdx   = committees.findIndex((c) => c.id === 'com-004' || c.nameEn === 'Finance');
+  const relationsIdx = committees.findIndex((c) => c.id === 'com-002' || c.nameEn === 'Relations');
+  if (financeIdx === -1 || relationsIdx === -1) return committees;
+
+  const finance   = committees[financeIdx];
+  const relations = committees[relationsIdx];
+  const merged = {
+    ...relations,
+    name:        'لجنة العلاقات والمالية',
+    nameEn:      'Relations and Finance',
+    description: `${relations.description} ${finance.description}`.trim(),
+  };
+
+  return committees
+    .filter((c) => c.id !== finance.id)
+    .map((c) => (c.id === relations.id ? merged : c));
+}
+
 function loadData() {
   try {
     const raw = localStorage.getItem(STORE_KEY);
@@ -209,9 +222,13 @@ function loadData() {
     const parsed = JSON.parse(raw);
     return {
       events:       parsed.events       ?? DEFAULT_STATE.events,
-      committees:   parsed.committees   ?? DEFAULT_STATE.committees,
+      committees:   migrateCommittees(parsed.committees ?? DEFAULT_STATE.committees),
       content:      { ...DEFAULT_STATE.content, ...(parsed.content ?? {}) },
-      tasks:        parsed.tasks        ?? DEFAULT_STATE.tasks,
+      tasks:        (parsed.tasks ?? DEFAULT_STATE.tasks).map((t) =>
+                       (t.committee === 'العلاقات' || t.committee === 'المالية')
+                         ? { ...t, committee: 'العلاقات والمالية' }
+                         : t
+                     ),
       achievements: parsed.achievements ?? DEFAULT_STATE.achievements,
       successPartners: parsed.successPartners ?? DEFAULT_STATE.successPartners,
       stats:        parsed.stats        ?? DEFAULT_STATE.stats,

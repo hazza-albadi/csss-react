@@ -65,19 +65,24 @@ export default function Home({ navigate }) {
             </button>
           </div>
 
-          {/* Next event chip */}
+          {/* Next event chip — split into a label/title row and a meta row so long
+              titles + date/time + register button no longer crowd onto one line */}
           {next && (
             <div className="next-event-chip" style={{ animationDelay: '1s' }}>
-              <span className="chip-dot" />
-              <span className="chip-label">الفعالية القادمة:</span>
-              <strong>{next.title}</strong>
-              <span className="chip-date">📅 {formatDate(next.date)}</span>
-              {next.time && <span className="chip-date">🕐 {formatTime(next.time)}</span>}
-              {next.formLink && (
-                <a href={next.formLink} target="_blank" rel="noopener noreferrer" className="chip-btn">
-                  سجّل
-                </a>
-              )}
+              <div className="next-event-head">
+                <span className="chip-dot" />
+                <span className="chip-label">الفعالية القادمة</span>
+                <strong className="chip-title">{next.title}</strong>
+              </div>
+              <div className="next-event-meta">
+                <span className="chip-date">📅 {formatDate(next.date)}</span>
+                {next.time && <span className="chip-date">🕐 {formatTime(next.time)}</span>}
+                {next.formLink && (
+                  <a href={next.formLink} target="_blank" rel="noopener noreferrer" className="chip-btn">
+                    سجّل
+                  </a>
+                )}
+              </div>
             </div>
           )}
         </div>

@@ -4,8 +4,8 @@ import { useStore } from '../store';
 const ICONS = {
   rocket: (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-      <path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2l-.55-.55M10 17a5 5 0 000-10 5 5 0 000 10z" />
-      <path d="M19.5 4.5l-15 15M14 10l2-2" /><circle cx="18" cy="6" r="2" />
+      <path d="M9 18h6" /><path d="M10 22h4" />
+      <path d="M12 2a6 6 0 00-6 6c0 2 1 3.5 2.5 4.8.7.6 1.2 1.5 1.3 2.2h4.4c.1-.7.6-1.6 1.3-2.2C17 11.5 18 10 18 8a6 6 0 00-6-6z" />
     </svg>
   ),
   handshake: (
@@ -18,16 +18,10 @@ const ICONS = {
       <circle cx="12" cy="12" r="10" /><circle cx="12" cy="12" r="6" /><circle cx="12" cy="12" r="2" />
     </svg>
   ),
-  finance: (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-      <line x1="12" y1="1" x2="12" y2="23" />
-      <path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" />
-    </svg>
-  ),
   media: (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-      <rect x="2" y="3" width="20" height="14" rx="2" />
-      <path d="M8 21h8M12 17v4" /><polygon points="10 8 16 12 10 16 10 8" />
+      <path d="M14.5 4h-5L7 7H4a2 2 0 00-2 2v9a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2h-3l-2.5-3z" />
+      <circle cx="12" cy="13" r="3.5" />
     </svg>
   ),
 };
